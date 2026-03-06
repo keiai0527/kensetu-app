@@ -110,8 +110,13 @@ export default function AttendancePage() {
 
       <main className="max-w-md mx-auto p-4">
         {showSuccess && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4 text-center font-bold">
-            登録しました！ / Đã đăng ký thành công!
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
+            <div className="bg-white rounded-3xl p-10 mx-4 text-center shadow-2xl max-w-xs w-full">
+              <div className="text-7xl mb-5">✅</div>
+              <h2 className="text-2xl font-bold text-green-600 mb-2">登録しました！</h2>
+              <p className="text-xl font-semibold text-gray-700 mb-3">お疲れ様でした！</p>
+              <p className="text-sm text-gray-400">Đã đăng ký! Cảm ơn bạn!</p>
+            </div>
           </div>
         )}
 

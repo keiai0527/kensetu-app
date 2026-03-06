@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "出勤管理アプリ",
-  description: "建設会社向け 出勤管理・人工集計・給与計算",
+  title: "Cham",
+  description: "株式会社敬愛興業 出勤管理・人工集計・給与管理アプリ",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "出勤管理",
+    title: "Cham",
   },
 };
 
@@ -30,7 +30,12 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen flex flex-col">
+        <div className="flex-1">{children}</div>
+        <footer className="text-center text-xs text-gray-400 py-2 bg-white border-t border-gray-100">
+          株式会社敬愛興業が作成管理するアプリケーションです
+        </footer>
+      </body>
     </html>
   );
 }

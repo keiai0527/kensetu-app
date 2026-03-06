@@ -49,7 +49,7 @@ export default function AdminAttendancePage() {
       .lt('date', endDate)
       .order('date', { ascending: false });
 
-    if (data) setRecords(data as Record[]);
+    if (data) setRecords(data as unknown as Record[]);
     setLoading(false);
   }
 

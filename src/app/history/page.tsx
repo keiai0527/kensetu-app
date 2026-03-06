@@ -70,7 +70,7 @@ export default function HistoryPage() {
       .lt('date', endDate)
       .order('date', { ascending: false });
 
-    if (data) setRecords(data as AttendanceRecord[]);
+    if (data) setRecords(data as unknown as AttendanceRecord[]);
     setLoading(false);
   }
 

@@ -74,10 +74,10 @@ export default function PayrollPage() {
       item.overtimeHours += a.overtime_hours || 0;
     });
 
-    // 給与計算
+    // çµ¦ä¸è¨ç®
     empMap.forEach(item => {
       item.basePay = item.dailyWage * item.dayCount;
-      item.nightPay = item.nightWage * item.nightCount - (item.dailyWage * item.nightCount);
+      item.nightPay = item.nightWage * item.nightCount;
       if (item.nightPay < 0) item.nightPay = 0;
       item.overtimePay = item.overtimeHourly * item.overtimeHours;
       item.finalPay = item.basePay + item.nightPay + item.overtimePay + item.allowance - item.deduction;
@@ -90,7 +90,7 @@ export default function PayrollPage() {
   function updateItem(index: number, field: string, value: number | string) {
     const newItems = [...items];
     (newItems[index] as any)[field] = value;
-    // 再計算
+    // åè¨ç®
     const item = newItems[index];
     item.finalPay = item.basePay + item.nightPay + item.overtimePay + item.allowance - item.deduction;
     setItems(newItems);
@@ -102,8 +102,8 @@ export default function PayrollPage() {
     <div className="min-h-screen bg-gray-100">
       <header className="bg-gray-800 text-white p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <a href="/admin" className="text-gray-300 hover:text-white">&larr; 管理画面</a>
-          <h1 className="text-lg font-bold">給与計算</h1>
+          <a href="/admin" className="text-gray-300 hover:text-white">&larr; ç®¡çç»é¢</a>
+          <h1 className="text-lg font-bold">çµ¦ä¸è¨ç®</h1>
           <div></div>
         </div>
       </header>
@@ -113,38 +113,38 @@ export default function PayrollPage() {
           <input type="month" value={month} onChange={(e) => { setMonth(e.target.value); fetchPayroll(e.target.value); }}
             className="p-3 border-2 rounded-lg text-lg" />
           <div className="text-lg font-bold text-red-700">
-            給与合計: {totalPay.toLocaleString()}円
+            çµ¦ä¸åè¨: {totalPay.toLocaleString()}å
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-gray-500">計算中...</div>
+          <div className="text-center py-8 text-gray-500">è¨ç®ä¸­...</div>
         ) : items.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">この月の出勤データがありません</div>
+          <div className="text-center py-8 text-gray-500">ãã®æã®åºå¤ãã¼ã¿ãããã¾ãã</div>
         ) : (
           <div className="bg-white rounded-xl shadow overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-2 py-3 text-left font-bold">従業員</th>
-                  <th className="px-2 py-3 text-center font-bold">出勤</th>
-                  <th className="px-2 py-3 text-center font-bold">日勤</th>
-                  <th className="px-2 py-3 text-center font-bold">夜勤</th>
-                  <th className="px-2 py-3 text-center font-bold">残業h</th>
-                  <th className="px-2 py-3 text-right font-bold">基本給</th>
-                  <th className="px-2 py-3 text-right font-bold">夜勤手当</th>
-                  <th className="px-2 py-3 text-right font-bold">残業手当</th>
-                  <th className="px-2 py-3 text-right font-bold">手当</th>
-                  <th className="px-2 py-3 text-right font-bold">控除</th>
-                  <th className="px-2 py-3 text-right font-bold">支給額</th>
-                  <th className="px-2 py-3 text-center font-bold">操作</th>
+                  <th className="px-2 py-3 text-left font-bold">å¾æ¥­å¡</th>
+                  <th className="px-2 py-3 text-center font-bold">åºå¤</th>
+                  <th className="px-2 py-3 text-center font-bold">æ¥å¤</th>
+                  <th className="px-2 py-3 text-center font-bold">å¤å¤</th>
+                  <th className="px-2 py-3 text-center font-bold">æ®æ¥­h</th>
+                  <th className="px-2 py-3 text-right font-bold">åºæ¬çµ¦</th>
+                  <th className="px-2 py-3 text-right font-bold">å¤å¤æ¥çµ¦</th>
+                  <th className="px-2 py-3 text-right font-bold">æ®æ¥­æå½</th>
+                  <th className="px-2 py-3 text-right font-bold">æå½</th>
+                  <th className="px-2 py-3 text-right font-bold">æ§é¤</th>
+                  <th className="px-2 py-3 text-right font-bold">æ¯çµ¦é¡</th>
+                  <th className="px-2 py-3 text-center font-bold">æä½</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {items.map((item, i) => (
                   <tr key={item.employeeId}>
                     <td className="px-2 py-2 font-bold">{item.employeeName}</td>
-                    <td className="px-2 py-2 text-center">{item.workDays}日</td>
+                    <td className="px-2 py-2 text-center">{item.workDays}æ¥</td>
                     <td className="px-2 py-2 text-center">{item.dayCount}</td>
                     <td className="px-2 py-2 text-center">{item.nightCount > 0 ? item.nightCount : '-'}</td>
                     <td className="px-2 py-2 text-center">{item.overtimeHours > 0 ? item.overtimeHours : '-'}</td>
@@ -173,7 +173,7 @@ export default function PayrollPage() {
                         onClick={() => setEditIndex(editIndex === i ? null : i)}
                         className="text-blue-600 hover:text-blue-800 text-xs font-bold"
                       >
-                        {editIndex === i ? '完了' : '修正'}
+                        {editIndex === i ? 'å®äº' : 'ä¿®æ­£'}
                       </button>
                     </td>
                   </tr>

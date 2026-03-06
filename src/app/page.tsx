@@ -59,10 +59,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-blue-50">
       {/* ヘッダー */}
-      <header className="bg-blue-800 text-white p-4 text-center">
-        <h1 className="text-xl font-bold">出勤管理アプリ</h1>
-        <p className="text-blue-200 text-sm mt-1">Ứng dụng quản lý chấm công</p>
-      </header>
 
       <main className="max-w-md mx-auto p-6 mt-8">
         <div className="bg-white rounded-xl shadow-lg p-6">

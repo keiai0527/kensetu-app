@@ -55,6 +55,7 @@ export default function AdminDashboard() {
     { href: '/admin/monthly', label: '月次集計', icon: '📊', desc: '人工集計・売上集計' },
     { href: '/admin/payroll', label: '給与計算', icon: '💰', desc: '給与自動計算・控除入力・手修正' },
     { href: '/admin/payslip', label: '給与明細', icon: '📄', desc: '給与明細表示・PDF出力' },
+    { href: '/admin/invoice', label: '請求書・出面表', icon: '📑', desc: '取引先への請求書・出面表を生成' },
   ];
 
   return (

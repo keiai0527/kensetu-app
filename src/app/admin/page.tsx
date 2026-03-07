@@ -49,11 +49,12 @@ export default function AdminDashboard() {
   }
 
   const menuItems = [
-    { href: '/admin/employees', label: '従業員マスター', icon: '👷', desc: '従業員の追加・編集' },
+    { href: '/admin/employees', label: '従業員マスター', icon: '👷', desc: '従業員の追加・編集・給与設定・控除設定' },
     { href: '/admin/clients', label: '取引先マスター', icon: '🏢', desc: '取引先・単価の管理' },
     { href: '/admin/attendance', label: '出勤記録', icon: '📋', desc: '全従業員の出勤確認・修正' },
     { href: '/admin/monthly', label: '月次集計', icon: '📊', desc: '人工集計・売上集計' },
-    { href: '/admin/payroll', label: '給与計算', icon: '💰', desc: '給与自動計算・手修正' },
+    { href: '/admin/payroll', label: '給与計算', icon: '💰', desc: '給与自動計算・控除入力・手修正' },
+    { href: '/admin/payslip', label: '給与明細', icon: '📄', desc: '給与明細表示・PDF出力' },
   ];
 
   return (

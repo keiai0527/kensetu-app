@@ -108,12 +108,8 @@ export default function InvoicePage() {
     }
 
     const recs: AttendanceRecord[] = data || [];
-
-    // Aggregate by date
     const dayMap = new Map<string, DailySummary>();
-    let tDays = 0;
-    let tNights = 0;
-    let tOT = 0;
+    let tDays = 0, tNights = 0, tOT = 0;
 
     for (const r of recs) {
       const workerName = r.employees?.name || '不明';
@@ -126,12 +122,8 @@ export default function InvoicePage() {
         if (isDay) existing.dayCount++;
         if (isNight) { existing.nightCount++; existing.nightInfo = `${existing.nightCount}`; }
         existing.overtimeHours += ot;
-        if (!existing.workers.includes(workerName)) {
-          existing.workers.push(workerName);
-        }
-        if (r.job_site && !existing.sites.includes(r.job_site)) {
-          existing.sites += '、' + r.job_site;
-        }
+        if (!existing.workers.includes(workerName)) existing.workers.push(workerName);
+        if (r.job_site && !existing.sites.includes(r.job_site)) existing.sites += '、' + r.job_site;
       } else {
         const d = new Date(r.date + 'T00:00:00');
         const days = ['日','月','火','水','木','金','土'];
@@ -146,27 +138,50 @@ export default function InvoicePage() {
           workers: [workerName],
         });
       }
-
       if (isDay) tDays++;
       if (isNight) tNights++;
       tOT += ot;
     }
 
-    const summaryArr = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-    setDailySummary(summaryArr);
+    setDailySummary(Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date)));
     setTotalDays(tDays);
     setTotalNights(tNights);
     setTotalOvertime(tOT);
     setPreviewing(false);
   }
 
-  function formatYen(n: number) {
-    return '¥' + n.toLocaleString();
+  function formatYen(n: number) { return '¥' + n.toLocaleString(); }
+  function formatDate(d: string) {
+    const p = d.split('-');
+    return `${parseInt(p[1])}/${parseInt(p[2])}`;
   }
 
-  function formatDate(d: string) {
-    const parts = d.split('-');
-    return `${parseInt(parts[1])}/${parseInt(parts[2])}`;
+  function createSealImage(): string {
+    const canvas = document.createElement('canvas');
+    canvas.width = 140;
+    canvas.height = 140;
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, 140, 140);
+    // Outer circle
+    ctx.beginPath();
+    ctx.arc(70, 70, 62, 0, Math.PI * 2);
+    ctx.strokeStyle = '#CC0000';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // Inner circle
+    ctx.beginPath();
+    ctx.arc(70, 70, 56, 0, Math.PI * 2);
+    ctx.strokeStyle = '#CC0000';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Text
+    ctx.fillStyle = '#CC0000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 30px "Yu Gothic", "Hiragino Sans", sans-serif';
+    ctx.fillText('敬愛', 70, 48);
+    ctx.fillText('興業', 70, 88);
+    return canvas.toDataURL('image/png').split(',')[1];
   }
 
   async function handleDownloadInvoice() {
@@ -175,11 +190,15 @@ export default function InvoicePage() {
     setGenerating(true);
 
     try {
-      const XLSX = await import('xlsx');
-      const wb = XLSX.utils.book_new();
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet(`${selectedMonth}月`, {
+        pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
+        properties: { defaultRowHeight: 18 }
+      });
+
       const { startDate, endDate } = getBillingPeriod(selectedYear, selectedMonth, client);
       const periodStr = `${formatDate(startDate)}～${formatDate(endDate)}`;
-
       const dayRate = client.day_rate || 16000;
       const otRate = client.overtime_rate || 2300;
       const dayAmount = totalDays * dayRate;
@@ -189,129 +208,311 @@ export default function InvoicePage() {
       const tax = Math.floor(subtotal * 0.1);
       const grandTotal = subtotal + tax;
 
-      const wsData: (string | number | null)[][] = [];
-      // Row 1: empty
-      wsData.push([]);
-      // Row 2: title
-      const r2 = new Array(18).fill(null); r2[10] = '御請求書'; wsData.push(r2);
-      // Row 3: empty
-      wsData.push([]);
-      // Row 4: invoice date
-      const r4 = new Array(18).fill(null);
-      r4[13] = '請求日'; r4[14] = `${selectedYear}/${selectedMonth}/21`;
-      wsData.push(r4);
-      // Row 5
-      const r5 = new Array(18).fill(null); r5[13] = '請求番号'; wsData.push(r5);
-      // Row 6: empty
-      wsData.push([]);
-      // Row 7: client / company
-      const r7 = new Array(18).fill(null);
-      r7[0] = client.honorific_name || (client.name + ' 御中');
-      r7[10] = '株式会社　敬愛興業';
-      wsData.push(r7);
-      // Row 8
-      const r8 = new Array(18).fill(null);
-      r8[0] = client.address || '';
-      r8[10] = '〒606-8117';
-      wsData.push(r8);
-      // Row 9
-      const r9 = new Array(18).fill(null);
-      r9[10] = '京都市左京区一乗寺里の前町85-14';
-      wsData.push(r9);
-      // Row 10
-      const r10 = new Array(18).fill(null);
-      r10[0] = '下記の通りご請求申し上げます。';
-      r10[10] = 'TEL/FAX  075-600-2475';
-      wsData.push(r10);
-      // Row 11
-      const r11 = new Array(18).fill(null);
-      r11[10] = 'keiai0527@gmail.com';
-      wsData.push(r11);
-      // Row 12
-      const r12 = new Array(18).fill(null);
-      r12[0] = 'ご請求金額';
-      r12[14] = '登録番号　T5130001074190';
-      wsData.push(r12);
-      // Row 13
-      const r13 = new Array(18).fill(null);
-      r13[0] = '¥' + grandTotal.toLocaleString();
-      r13[10] = 'お振込先';
-      wsData.push(r13);
-      // Row 14
-      const r14 = new Array(18).fill(null);
-      r14[10] = '京都信用金庫 修学院支店 普通 3030674';
-      wsData.push(r14);
-      // Row 15-17
-      wsData.push(['この売り上げの10％をけいいい子ども食堂と']);
-      const r16 = new Array(18).fill(null);
-      r16[0] = 'ケイアイハピネス便（非営利団体）に';
-      r16[10] = '振り込み期日';
-      r16[12] = `${selectedYear}/${selectedMonth}/末`;
-      wsData.push(r16);
-      wsData.push(['寄付させていただきます。']);
-      // Row 18: empty
-      wsData.push([]);
-      // Row 19: headers (A=日付番号, C=品名, J=数量, L=単位, N=単価, P=合計)
-      const r19 = new Array(18).fill(null);
-      r19[0] = '日付・番号'; r19[2] = '品名・品番';
-      r19[9] = '数量'; r19[11] = '単位'; r19[13] = '単価'; r19[15] = '合計';
-      wsData.push(r19);
-      // Row 20: day work
-      const r20 = new Array(18).fill(null);
-      r20[2] = '解体作業代金'; r20[9] = totalDays;
-      r20[11] = '式'; r20[13] = dayRate; r20[15] = dayAmount;
-      wsData.push(r20);
-      // Row 21: overtime
-      let rowIdx = 21;
-      if (totalOvertime > 0) {
-        const r21 = new Array(18).fill(null);
-        r21[2] = '残業代'; r21[9] = totalOvertime;
-        r21[11] = '式'; r21[13] = otRate; r21[15] = otAmount;
-        wsData.push(r21);
-        rowIdx++;
-      }
-      // Night work line if applicable
-      if (totalNights > 0) {
-        const rN = new Array(18).fill(null);
-        rN[2] = '夜勤代金'; rN[9] = totalNights;
-        rN[11] = '式'; rN[13] = client.night_rate || dayRate; rN[15] = nightAmount;
-        wsData.push(rN);
-        rowIdx++;
-      }
-      // Fill to row 39
-      for (let i = rowIdx; i < 40; i++) wsData.push([]);
-      // Row 40: subtotal
-      const r40 = new Array(18).fill(null);
-      r40[2] = '小計'; r40[15] = subtotal;
-      wsData.push(r40);
-      // Row 41: tax
-      const r41 = new Array(18).fill(null);
-      r41[2] = '消費税'; r41[15] = tax;
-      wsData.push(r41);
-      wsData.push([]);
-      // Row 43-44: remarks
-      wsData.push(['備考']);
-      wsData.push([periodStr]);
-
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-      // Column widths matching template
-      ws['!cols'] = [
-        {wch:5},{wch:5},{wch:13},{wch:5},{wch:5},{wch:2.5},{wch:3},{wch:1},{wch:1.5},{wch:1.5},
-        {wch:5},{wch:5},{wch:5},{wch:9},{wch:10},{wch:5},{wch:8},{wch:4}
+      // Column widths (A-H)
+      ws.columns = [
+        { width: 12 }, // A: date/number
+        { width: 28 }, // B: description
+        { width: 10 }, // C: quantity
+        { width: 8 },  // D: unit
+        { width: 14 }, // E: unit price
+        { width: 16 }, // F: amount
+        { width: 3 },  // G: spacer
+        { width: 30 }, // H: right side info
       ];
 
-      // Number format for yen columns
-      const yenCells = ['P20','P21','P22','P40','P41'];
-      for (const ref of yenCells) {
-        if (ws[ref]) {
-          ws[ref].z = '¥#,##0';
-        }
+      const thinBorder = { style: 'thin' as const, color: { argb: 'FF000000' } };
+      const medBorder = { style: 'medium' as const, color: { argb: 'FF000000' } };
+      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF2B4C7E' } };
+      const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Yu Gothic' };
+      const normalFont = { size: 10, name: 'Yu Gothic' };
+      const boldFont = { bold: true, size: 10, name: 'Yu Gothic' };
+
+      // Row 1: spacer
+      ws.getRow(1).height = 10;
+
+      // Row 2: Title
+      ws.mergeCells('A2:F2');
+      const titleCell = ws.getCell('A2');
+      titleCell.value = '御 請 求 書';
+      titleCell.font = { bold: true, size: 22, name: 'Yu Gothic' };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(2).height = 38;
+
+      // Row 3: spacer
+      ws.getRow(3).height = 8;
+
+      // Row 4: 請求日
+      ws.getCell('E4').value = '請求日:';
+      ws.getCell('E4').font = boldFont;
+      ws.getCell('E4').alignment = { horizontal: 'right' };
+      ws.getCell('F4').value = `${selectedYear}年${selectedMonth}月21日`;
+      ws.getCell('F4').font = normalFont;
+
+      // Row 5: 請求番号
+      ws.getCell('E5').value = '請求番号:';
+      ws.getCell('E5').font = boldFont;
+      ws.getCell('E5').alignment = { horizontal: 'right' };
+
+      // Row 6: spacer
+      ws.getRow(6).height = 6;
+
+      // Row 7: Client name (left) / Company name (right)
+      ws.mergeCells('A7:C7');
+      const clientCell = ws.getCell('A7');
+      clientCell.value = client.honorific_name || (client.name + ' 御中');
+      clientCell.font = { bold: true, size: 14, name: 'Yu Gothic' };
+      clientCell.border = { bottom: medBorder };
+
+      ws.getCell('H7').value = '株式会社　敬愛舆業';
+      ws.getCell('H7').font = { bold: true, size: 12, name: 'Yu Gothic' };
+
+      // Row 8: Client address / Postal code
+      ws.mergeCells('A8:C8');
+      ws.getCell('A8').value = client.address || '';
+      ws.getCell('A8').font = normalFont;
+
+      ws.getCell('H8').value = '〒606-8117';
+      ws.getCell('H8').font = normalFont;
+
+      // Row 9: Company address
+      ws.getCell('H9').value = '京都市左京区一乗寺里の前町85-14';
+      ws.getCell('H9').font = normalFont;
+
+      // Row 10: 下記の通り / TEL
+      ws.mergeCells('A10:C10');
+      ws.getCell('A10').value = '下記の通りご請求申し上げます。';
+      ws.getCell('A10').font = normalFont;
+
+      ws.getCell('H10').value = 'TEL/FAX  075-600-2475';
+      ws.getCell('H10').font = normalFont;
+
+      // Row 11: Email
+      ws.getCell('H11').value = 'keiai0527@gmail.com';
+      ws.getCell('H11').font = normalFont;
+
+      // Row 12: spacer
+      ws.getRow(12).height = 8;
+
+      // Row 13: Grand total box
+      ws.mergeCells('A13:B13');
+      ws.getCell('A13').value = 'ご請求金額';
+      ws.getCell('A13').font = { bold: true, size: 11, name: 'Yu Gothic' };
+
+      ws.mergeCells('C13:F13');
+      ws.getCell('C13').value = grandTotal;
+      ws.getCell('C13').numFmt = '¥#,##0';
+      ws.getCell('C13').font = { bold: true, size: 18, name: 'Yu Gothic' };
+      ws.getCell('C13').alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getCell('C13').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+      ws.getCell('C13').border = { top: medBorder, bottom: medBorder, left: medBorder, right: medBorder };
+      ws.getCell('D13').border = { top: medBorder, bottom: medBorder };
+      ws.getCell('E13').border = { top: medBorder, bottom: medBorder };
+      ws.getCell('F13').border = { top: medBorder, bottom: medBorder, right: medBorder };
+      ws.getRow(13).height = 32;
+
+      // Row 14: お振込先
+      ws.getCell('H13').value = 'お振込先:';
+      ws.getCell('H13').font = boldFont;
+      ws.getCell('H14').value = '京都信用金庫 修学院支店';
+      ws.getCell('H14').font = normalFont;
+
+      // Row 15: Bank account
+      ws.getCell('H15').value = '普通 3030674 カ）ケイアイコウギョウ';
+      ws.getCell('H15').font = normalFont;
+
+      // Row 16: 振込期日 / 登録番号
+      ws.getCell('A16').value = '登録番号: T5130001074190';
+      ws.getCell('A16').font = { size: 9, name: 'Yu Gothic', color: { argb: 'FF555555' } };
+
+      ws.getCell('H16').value = `振込期日: ${selectedYear}年${selectedMonth}月末`;
+      ws.getCell('H16').font = boldFont;
+
+      // Row 17: spacer
+      ws.getRow(17).height = 6;
+
+      // Row 18: Table header
+      const headerRow = 18;
+      const headers = [
+        { col: 'A', val: '日付・番号' },
+        { col: 'B', val: '品名・摘要' },
+        { col: 'C', val: '数量' },
+        { col: 'D', val: '単位' },
+        { col: 'E', val: '単価' },
+        { col: 'F', val: '金額' },
+      ];
+      for (const h of headers) {
+        const cell = ws.getCell(`${h.col}${headerRow}`);
+        cell.value = h.val;
+        cell.font = headerFont;
+        cell.fill = headerFill;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { top: medBorder, bottom: medBorder, left: thinBorder, right: thinBorder };
+      }
+      ws.getCell(`A${headerRow}`).border = { top: medBorder, bottom: medBorder, left: medBorder, right: thinBorder };
+      ws.getCell(`F${headerRow}`).border = { top: medBorder, bottom: medBorder, left: thinBorder, right: medBorder };
+      ws.getRow(headerRow).height = 24;
+
+      // Data rows
+      let dataRow = 19;
+      const lineItems: { name: string; qty: number; unit: string; price: number; amount: number }[] = [];
+      lineItems.push({ name: '解体作業代金', qty: totalDays, unit: '人日', price: dayRate, amount: dayAmount });
+      if (totalOvertime > 0) {
+        lineItems.push({ name: '残業代', qty: totalOvertime, unit: '時間', price: otRate, amount: otAmount });
+      }
+      if (totalNights > 0) {
+        lineItems.push({ name: '夜勤代金', qty: totalNights, unit: '人日', price: client.night_rate || dayRate, amount: nightAmount });
       }
 
-      XLSX.utils.book_append_sheet(wb, ws, `${selectedMonth}月`);
-      const fileName = `${client.name}_請求書_${selectedYear}年${selectedMonth}月.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      for (const item of lineItems) {
+        ws.getCell(`A${dataRow}`).value = '';
+        ws.getCell(`B${dataRow}`).value = item.name;
+        ws.getCell(`B${dataRow}`).font = normalFont;
+        ws.getCell(`C${dataRow}`).value = item.qty;
+        ws.getCell(`C${dataRow}`).font = normalFont;
+        ws.getCell(`C${dataRow}`).alignment = { horizontal: 'center' };
+        ws.getCell(`D${dataRow}`).value = item.unit;
+        ws.getCell(`D${dataRow}`).font = normalFont;
+        ws.getCell(`D${dataRow}`).alignment = { horizontal: 'center' };
+        ws.getCell(`E${dataRow}`).value = item.price;
+        ws.getCell(`E${dataRow}`).numFmt = '#,##0';
+        ws.getCell(`E${dataRow}`).font = normalFont;
+        ws.getCell(`E${dataRow}`).alignment = { horizontal: 'right' };
+        ws.getCell(`F${dataRow}`).value = item.amount;
+        ws.getCell(`F${dataRow}`).numFmt = '#,##0';
+        ws.getCell(`F${dataRow}`).font = normalFont;
+        ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
+        // Borders
+        for (const col of ['A','B','C','D','E','F']) {
+          const c = ws.getCell(`${col}${dataRow}`);
+          c.border = {
+            left: col === 'A' ? medBorder : thinBorder,
+            right: col === 'F' ? medBorder : thinBorder,
+            top: thinBorder,
+            bottom: thinBorder,
+          };
+        }
+        dataRow++;
+      }
+
+      // Empty rows to fill table (at least 15 rows total in table body)
+      const minTableEnd = headerRow + 16;
+      while (dataRow < minTableEnd) {
+        for (const col of ['A','B','C','D','E','F']) {
+          const c = ws.getCell(`${col}${dataRow}`);
+          c.border = {
+            left: col === 'A' ? medBorder : thinBorder,
+            right: col === 'F' ? medBorder : thinBorder,
+            top: thinBorder,
+            bottom: thinBorder,
+          };
+        }
+        dataRow++;
+      }
+
+      // Subtotal row
+      ws.mergeCells(`A${dataRow}:D${dataRow}`);
+      ws.getCell(`A${dataRow}`).value = '小計';
+      ws.getCell(`A${dataRow}`).font = boldFont;
+      ws.getCell(`A${dataRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
+      ws.getCell(`E${dataRow}`).value = '';
+      ws.getCell(`F${dataRow}`).value = subtotal;
+      ws.getCell(`F${dataRow}`).numFmt = '¥#,##0';
+      ws.getCell(`F${dataRow}`).font = boldFont;
+      ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
+      for (const col of ['A','B','C','D','E','F']) {
+        ws.getCell(`${col}${dataRow}`).border = {
+          left: col === 'A' ? medBorder : thinBorder,
+          right: col === 'F' ? medBorder : thinBorder,
+          top: medBorder,
+          bottom: thinBorder,
+        };
+      }
+      ws.getCell(`A${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+      ws.getCell(`E${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+      ws.getCell(`F${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+      dataRow++;
+
+      // Tax row
+      ws.mergeCells(`A${dataRow}:D${dataRow}`);
+      ws.getCell(`A${dataRow}`).value = '消費税 (10%)';
+      ws.getCell(`A${dataRow}`).font = boldFont;
+      ws.getCell(`A${dataRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
+      ws.getCell(`E${dataRow}`).value = '';
+      ws.getCell(`F${dataRow}`).value = tax;
+      ws.getCell(`F${dataRow}`).numFmt = '¥#,##0';
+      ws.getCell(`F${dataRow}`).font = boldFont;
+      ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
+      for (const col of ['A','B','C','D','E','F']) {
+        ws.getCell(`${col}${dataRow}`).border = {
+          left: col === 'A' ? medBorder : thinBorder,
+          right: col === 'F' ? medBorder : thinBorder,
+          top: thinBorder,
+          bottom: thinBorder,
+        };
+      }
+      dataRow++;
+
+      // Grand total row
+      ws.mergeCells(`A${dataRow}:D${dataRow}`);
+      ws.getCell(`A${dataRow}`).value = '合計';
+      ws.getCell(`A${dataRow}`).font = { bold: true, size: 12, name: 'Yu Gothic' };
+      ws.getCell(`A${dataRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
+      ws.getCell(`E${dataRow}`).value = '';
+      ws.getCell(`F${dataRow}`).value = grandTotal;
+      ws.getCell(`F${dataRow}`).numFmt = '¥#,##0';
+      ws.getCell(`F${dataRow}`).font = { bold: true, size: 12, name: 'Yu Gothic' };
+      ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
+      for (const col of ['A','B','C','D','E','F']) {
+        ws.getCell(`${col}${dataRow}`).border = {
+          left: col === 'A' ? medBorder : thinBorder,
+          right: col === 'F' ? medBorder : thinBorder,
+          top: thinBorder,
+          bottom: medBorder,
+        };
+      }
+      ws.getCell(`A${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      ws.getCell(`E${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      ws.getCell(`F${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      ws.getRow(dataRow).height = 26;
+      dataRow++;
+
+      // Spacer
+      dataRow++;
+
+      // Remarks
+      ws.getCell(`A${dataRow}`).value = '備考';
+      ws.getCell(`A${dataRow}`).font = boldFont;
+      dataRow++;
+      ws.getCell(`A${dataRow}`).value = `期間: ${periodStr}`;
+      ws.getCell(`A${dataRow}`).font = normalFont;
+      dataRow++;
+      ws.mergeCells(`A${dataRow}:F${dataRow}`);
+      ws.getCell(`A${dataRow}`).value = 'この売り上げの10％をけいあい子ども食堂とケイアイハピネス便（非営利団体）に寄付させていただきます。';
+      ws.getCell(`A${dataRow}`).font = { size: 9, name: 'Yu Gothic', color: { argb: 'FF666666' } };
+
+      // Electronic seal image
+      try {
+        const sealBase64 = createSealImage();
+        const imageId = workbook.addImage({ base64: sealBase64, extension: 'png' });
+        ws.addImage(imageId, {
+          tl: { col: 7.1, row: 6.5 } as any,
+          ext: { width: 85, height: 85 },
+        });
+      } catch (e) {
+        console.warn('Seal image creation failed:', e);
+      }
+
+      // Download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${client.name}_請求書_${selectedYear}年${selectedMonth}月.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert('エラー: ' + (err as Error).message);
     }
@@ -324,16 +525,69 @@ export default function InvoicePage() {
     setGenerating(true);
 
     try {
-      const XLSX = await import('xlsx');
-      const wb = XLSX.utils.book_new();
-      const wsData: (string | number | null)[][] = [];
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet(`出面表_${selectedMonth}月`, {
+        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
+      });
 
-      wsData.push(['出面表']);
-      wsData.push([`${selectedMonth}月分`]);
-      wsData.push(['日付', '曜日', '現場', '日勤', '夜勤', '残業', '早出', '土工', '解体工', '送迎', '備考']);
+      const thinBorder = { style: 'thin' as const, color: { argb: 'FF000000' } };
+      const medBorder = { style: 'medium' as const, color: { argb: 'FF000000' } };
+      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF2B4C7E' } };
+      const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Yu Gothic' };
+      const normalFont = { size: 10, name: 'Yu Gothic' };
+      const boldFont = { bold: true, size: 10, name: 'Yu Gothic' };
 
+      ws.columns = [
+        { width: 10 }, // A: date
+        { width: 5 },  // B: day of week
+        { width: 24 }, // C: site
+        { width: 7 },  // D: day count
+        { width: 7 },  // E: night count
+        { width: 7 },  // F: overtime
+        { width: 7 },  // G: early
+        { width: 7 },  // H: laborer
+        { width: 8 },  // I: demolition
+        { width: 7 },  // J: transport
+        { width: 28 }, // K: remarks
+      ];
+
+      // Title
+      ws.mergeCells('A1:K1');
+      ws.getCell('A1').value = '出 面 表';
+      ws.getCell('A1').font = { bold: true, size: 18, name: 'Yu Gothic' };
+      ws.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(1).height = 32;
+
+      // Subtitle
+      ws.mergeCells('A2:C2');
+      ws.getCell('A2').value = `${selectedYear}年${selectedMonth}月分　${client.name}`;
+      ws.getCell('A2').font = { bold: true, size: 12, name: 'Yu Gothic' };
+      ws.getRow(2).height = 24;
+
+      // Header row
+      const hdrRow = 3;
+      const hdrLabels = ['日付','曜日','現場','日勤','夜勤','残業','早出','土工','解体工','送迎','備考'];
+      for (let i = 0; i < hdrLabels.length; i++) {
+        const col = String.fromCharCode(65 + i);
+        const cell = ws.getCell(`${col}${hdrRow}`);
+        cell.value = hdrLabels[i];
+        cell.font = headerFont;
+        cell.fill = headerFill;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: medBorder,
+          bottom: medBorder,
+          left: i === 0 ? medBorder : thinBorder,
+          right: i === hdrLabels.length - 1 ? medBorder : thinBorder,
+        };
+      }
+      ws.getRow(hdrRow).height = 22;
+
+      // Data rows
+      let row = 4;
       for (const day of dailySummary) {
-        wsData.push([
+        const vals = [
           formatDate(day.date),
           day.dayOfWeek,
           day.sites,
@@ -342,18 +596,58 @@ export default function InvoicePage() {
           day.overtimeHours || null,
           null, null, null, null,
           day.workers.join('、'),
-        ]);
+        ];
+        for (let i = 0; i < vals.length; i++) {
+          const col = String.fromCharCode(65 + i);
+          const cell = ws.getCell(`${col}${row}`);
+          cell.value = vals[i];
+          cell.font = normalFont;
+          cell.alignment = { horizontal: i <= 2 || i === 10 ? 'left' : 'center', vertical: 'middle' };
+          cell.border = {
+            top: thinBorder,
+            bottom: thinBorder,
+            left: i === 0 ? medBorder : thinBorder,
+            right: i === vals.length - 1 ? medBorder : thinBorder,
+          };
+        }
+        // Saturday/Sunday coloring
+        if (day.dayOfWeek === '土') {
+          ws.getCell(`B${row}`).font = { ...normalFont, color: { argb: 'FF0066CC' } };
+        } else if (day.dayOfWeek === '日') {
+          ws.getCell(`B${row}`).font = { ...normalFont, color: { argb: 'FFCC0000' } };
+        }
+        row++;
       }
-      wsData.push([null, null, '合計', totalDays, totalNights || null, totalOvertime || null]);
 
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      ws['!cols'] = [
-        {wch:8},{wch:4},{wch:22},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:6},{wch:5},{wch:25}
-      ];
+      // Total row
+      const totalLabels = ['', '', '合計', totalDays, totalNights || null, totalOvertime || null, null, null, null, null, ''];
+      for (let i = 0; i < totalLabels.length; i++) {
+        const col = String.fromCharCode(65 + i);
+        const cell = ws.getCell(`${col}${row}`);
+        cell.value = totalLabels[i];
+        cell.font = boldFont;
+        cell.alignment = { horizontal: i <= 2 || i === 10 ? 'left' : 'center', vertical: 'middle' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+        cell.border = {
+          top: medBorder,
+          bottom: medBorder,
+          left: i === 0 ? medBorder : thinBorder,
+          right: i === totalLabels.length - 1 ? medBorder : thinBorder,
+        };
+      }
+      ws.getRow(row).height = 22;
 
-      XLSX.utils.book_append_sheet(wb, ws, `${selectedMonth}月`);
-      const fileName = `${client.name}_出面表_${selectedYear}年${selectedMonth}月.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      // Download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${client.name}_出面表_${selectedYear}年${selectedMonth}月.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert('エラー: ' + (err as Error).message);
     }

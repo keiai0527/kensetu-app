@@ -12,6 +12,19 @@ type Employee = {
   overtime_hourly: number;
   is_active: boolean;
   display_order: number;
+  // 給与設定（新規）
+  base_daily_wage: number;
+  night_allowance_per_day: number;
+  position_allowance: number;
+  trip_allowance: number;
+  special_allowance: number;
+  // 固定控除設定（新規）
+  rent_deduction: number;
+  utilities_deduction: number;
+  safety_association_fee: number;
+  japanese_study_fee_enabled: boolean;
+  japanese_study_fee_amount: number;
+  wifi_deduction: number;
 };
 
 export default function EmployeesPage() {
@@ -19,6 +32,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'basic' | 'salary' | 'deduction'>('basic');
   const [form, setForm] = useState({
     name: '',
     name_vi: '',
@@ -26,6 +40,19 @@ export default function EmployeesPage() {
     night_wage: '15000',
     overtime_hourly: '1000',
     display_order: '0',
+    // 給与設定
+    base_daily_wage: '12000',
+    night_allowance_per_day: '3000',
+    position_allowance: '0',
+    trip_allowance: '0',
+    special_allowance: '0',
+    // 固定控除
+    rent_deduction: '0',
+    utilities_deduction: '0',
+    safety_association_fee: '1500',
+    japanese_study_fee_enabled: false,
+    japanese_study_fee_amount: '0',
+    wifi_deduction: '0',
   });
 
   useEffect(() => {
@@ -48,12 +75,21 @@ export default function EmployeesPage() {
 
   function handleNew() {
     setEditId(null);
-    setForm({ name: '', name_vi: '', daily_wage: '12000', night_wage: '15000', overtime_hourly: '1000', display_order: '0' });
+    setActiveTab('basic');
+    setForm({
+      name: '', name_vi: '',
+      daily_wage: '12000', night_wage: '15000', overtime_hourly: '1000', display_order: '0',
+      base_daily_wage: '12000', night_allowance_per_day: '3000',
+      position_allowance: '0', trip_allowance: '0', special_allowance: '0',
+      rent_deduction: '0', utilities_deduction: '0', safety_association_fee: '1500',
+      japanese_study_fee_enabled: false, japanese_study_fee_amount: '0', wifi_deduction: '0',
+    });
     setShowForm(true);
   }
 
   function handleEdit(emp: Employee) {
     setEditId(emp.id);
+    setActiveTab('basic');
     setForm({
       name: emp.name,
       name_vi: emp.name_vi || '',
@@ -61,19 +97,42 @@ export default function EmployeesPage() {
       night_wage: String(emp.night_wage),
       overtime_hourly: String(emp.overtime_hourly),
       display_order: String(emp.display_order),
+      base_daily_wage: String(emp.base_daily_wage || emp.daily_wage),
+      night_allowance_per_day: String(emp.night_allowance_per_day ?? 3000),
+      position_allowance: String(emp.position_allowance || 0),
+      trip_allowance: String(emp.trip_allowance || 0),
+      special_allowance: String(emp.special_allowance || 0),
+      rent_deduction: String(emp.rent_deduction || 0),
+      utilities_deduction: String(emp.utilities_deduction || 0),
+      safety_association_fee: String(emp.safety_association_fee ?? 1500),
+      japanese_study_fee_enabled: emp.japanese_study_fee_enabled || false,
+      japanese_study_fee_amount: String(emp.japanese_study_fee_amount || 0),
+      wifi_deduction: String(emp.wifi_deduction || 0),
     });
     setShowForm(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const baseDailyWage = parseInt(form.base_daily_wage) || 0;
     const payload = {
       name: form.name,
       name_vi: form.name_vi || null,
-      daily_wage: parseInt(form.daily_wage),
-      night_wage: parseInt(form.night_wage),
-      overtime_hourly: parseInt(form.overtime_hourly),
-      display_order: parseInt(form.display_order),
+      daily_wage: baseDailyWage,
+      night_wage: parseInt(form.night_wage) || 0,
+      overtime_hourly: parseInt(form.overtime_hourly) || 0,
+      display_order: parseInt(form.display_order) || 0,
+      base_daily_wage: baseDailyWage,
+      night_allowance_per_day: parseInt(form.night_allowance_per_day) || 3000,
+      position_allowance: parseInt(form.position_allowance) || 0,
+      trip_allowance: parseInt(form.trip_allowance) || 0,
+      special_allowance: parseInt(form.special_allowance) || 0,
+      rent_deduction: parseInt(form.rent_deduction) || 0,
+      utilities_deduction: parseInt(form.utilities_deduction) || 0,
+      safety_association_fee: parseInt(form.safety_association_fee) || 1500,
+      japanese_study_fee_enabled: form.japanese_study_fee_enabled,
+      japanese_study_fee_amount: parseInt(form.japanese_study_fee_amount) || 0,
+      wifi_deduction: parseInt(form.wifi_deduction) || 0,
     };
 
     if (editId) {
@@ -81,7 +140,6 @@ export default function EmployeesPage() {
     } else {
       await supabase.from('employees').insert(payload);
     }
-
     setShowForm(false);
     fetchEmployees();
   }
@@ -89,6 +147,14 @@ export default function EmployeesPage() {
   async function toggleActive(emp: Employee) {
     await supabase.from('employees').update({ is_active: !emp.is_active }).eq('id', emp.id);
     fetchEmployees();
+  }
+
+  // 控除合計を計算して一覧に表示
+  function calcTotalDeduction(emp: Employee): number {
+    let total = (emp.rent_deduction || 0) + (emp.utilities_deduction || 0) + (emp.safety_association_fee ?? 1500);
+    if (emp.japanese_study_fee_enabled) total += (emp.japanese_study_fee_amount || 0);
+    total += (emp.wifi_deduction || 0);
+    return total;
   }
 
   return (
@@ -116,8 +182,8 @@ export default function EmployeesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-bold text-gray-600">名前</th>
-                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">日給</th>
-                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">夜勤日給</th>
+                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">基本日給</th>
+                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-600">固定控除計</th>
                   <th className="px-4 py-3 text-center text-sm font-bold text-gray-600">状態</th>
                   <th className="px-4 py-3 text-center text-sm font-bold text-gray-600">操作</th>
                 </tr>
@@ -129,8 +195,12 @@ export default function EmployeesPage() {
                       <div className="font-bold">{emp.name}</div>
                       {emp.name_vi && <div className="text-xs text-gray-500">{emp.name_vi}</div>}
                     </td>
-                    <td className="px-4 py-3 text-right">{emp.daily_wage.toLocaleString()}円</td>
-                    <td className="px-4 py-3 text-right">{emp.night_wage.toLocaleString()}円</td>
+                    <td className="px-4 py-3 text-right">
+                      {(emp.base_daily_wage || emp.daily_wage).toLocaleString()}円
+                    </td>
+                    <td className="px-4 py-3 text-right text-red-600">
+                      {calcTotalDeduction(emp) > 0 ? `-${calcTotalDeduction(emp).toLocaleString()}円` : '-'}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => toggleActive(emp)}
@@ -138,7 +208,7 @@ export default function EmployeesPage() {
                           emp.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'
                         }`}
                       >
-                        {emp.is_active ? '在籍' : '退職'}
+                        {emp.is_active ? '在籍' : '離職'}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -157,85 +227,192 @@ export default function EmployeesPage() {
         )}
       </main>
 
-      {/* 編集フォーム */}
+      {/* 編集フォーム（タブ式） */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">
               {editId ? '従業員を編集' : '従業員を追加'}
             </h3>
+
+            {/* タブ切替 */}
+            <div className="flex border-b mb-4">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`px-4 py-2 text-sm font-bold border-b-2 ${
+                  activeTab === 'basic' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                基本情報
+              </button>
+              <button
+                onClick={() => setActiveTab('salary')}
+                className={`px-4 py-2 text-sm font-bold border-b-2 ${
+                  activeTab === 'salary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                給与設定
+              </button>
+              <button
+                onClick={() => setActiveTab('deduction')}
+                className={`px-4 py-2 text-sm font-bold border-b-2 ${
+                  activeTab === 'deduction' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                固定控除
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">名前（日本語）*</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">名前（ベトナム語）</label>
-                <input
-                  type="text"
-                  value={form.name_vi}
-                  onChange={(e) => setForm({ ...form, name_vi: e.target.value })}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">日給（円）</label>
-                  <input
-                    type="number"
-                    value={form.daily_wage}
-                    onChange={(e) => setForm({ ...form, daily_wage: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">夜勤日給（円）</label>
-                  <input
-                    type="number"
-                    value={form.night_wage}
-                    onChange={(e) => setForm({ ...form, night_wage: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">残業時給（円）</label>
-                  <input
-                    type="number"
-                    value={form.overtime_hourly}
-                    onChange={(e) => setForm({ ...form, overtime_hourly: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">表示順</label>
-                  <input
-                    type="number"
-                    value={form.display_order}
-                    onChange={(e) => setForm({ ...form, display_order: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
+
+              {/* === 基本情報タブ === */}
+              {activeTab === 'basic' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">名前（日本語）*</label>
+                    <input type="text" value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">名前（ベトナム語）</label>
+                    <input type="text" value={form.name_vi}
+                      onChange={(e) => setForm({ ...form, name_vi: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">残業時給（円）</label>
+                      <input type="number" value={form.overtime_hourly}
+                        onChange={(e) => setForm({ ...form, overtime_hourly: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">表示順</label>
+                      <input type="number" value={form.display_order}
+                        onChange={(e) => setForm({ ...form, display_order: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* === 給与設定タブ === */}
+              {activeTab === 'salary' && (
+                <>
+                  <div className="bg-blue-50 p-3 rounded-lg mb-2">
+                    <p className="text-xs text-blue-700">従業員の基本日給・各種手当を設定します。給与計算時に自動適用されます。</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">基本日給（円）*</label>
+                    <input type="number" value={form.base_daily_wage}
+                      onChange={(e) => setForm({ ...form, base_daily_wage: e.target.value, daily_wage: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg font-bold" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">夜勤加算額（円/日）</label>
+                      <input type="number" value={form.night_allowance_per_day}
+                        onChange={(e) => setForm({ ...form, night_allowance_per_day: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">夜勤日給（円）</label>
+                      <input type="number" value={form.night_wage}
+                        onChange={(e) => setForm({ ...form, night_wage: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">職務手当</label>
+                      <input type="number" value={form.position_allowance}
+                        onChange={(e) => setForm({ ...form, position_allowance: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">出張手当</label>
+                      <input type="number" value={form.trip_allowance}
+                        onChange={(e) => setForm({ ...form, trip_allowance: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">特別手当</label>
+                      <input type="number" value={form.special_allowance}
+                        onChange={(e) => setForm({ ...form, special_allowance: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* === 固定控除タブ === */}
+              {activeTab === 'deduction' && (
+                <>
+                  <div className="bg-red-50 p-3 rounded-lg mb-2">
+                    <p className="text-xs text-red-700">毎月の給与から自動控除される固定額を設定します。</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">家賃（円）</label>
+                      <input type="number" value={form.rent_deduction}
+                        onChange={(e) => setForm({ ...form, rent_deduction: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">光熱費（円）</label>
+                      <input type="number" value={form.utilities_deduction}
+                        onChange={(e) => setForm({ ...form, utilities_deduction: e.target.value })}
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">安全協力会費（円）</label>
+                    <input type="number" value={form.safety_association_fee}
+                      onChange={(e) => setForm({ ...form, safety_association_fee: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    <p className="text-xs text-gray-400 mt-1">※ デフォルト 1,500円</p>
+                  </div>
+                  <div className="border-2 border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-bold text-gray-700">日本語学習費</label>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, japanese_study_fee_enabled: !form.japanese_study_fee_enabled })}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                          form.japanese_study_fee_enabled ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                          form.japanese_study_fee_enabled ? 'translate-x-6' : 'translate-x-0.5'
+                        }`} />
+                      </button>
+                    </div>
+                    {form.japanese_study_fee_enabled && (
+                      <input type="number" value={form.japanese_study_fee_amount}
+                        onChange={(e) => setForm({ ...form, japanese_study_fee_amount: e.target.value })}
+                        placeholder="金額（円）"
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">WiFi（円）</label>
+                    <input type="number" value={form.wifi_deduction}
+                      onChange={(e) => setForm({ ...form, wifi_deduction: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    <p className="text-xs text-gray-400 mt-1">※ 将来拡張用</p>
+                  </div>
+                </>
+              )}
+
+              {/* ボタン */}
               <div className="flex gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 py-3 border-2 border-gray-300 rounded-lg font-bold hover:bg-gray-100"
-                >
+                <button type="button" onClick={() => setShowForm(false)}
+                  className="flex-1 py-3 border-2 border-gray-300 rounded-lg font-bold hover:bg-gray-100">
                   キャンセル
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
-                >
+                <button type="submit"
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">
                   {editId ? '更新' : '追加'}
                 </button>
               </div>

@@ -136,16 +136,23 @@ export default function EmployeesPage() {
     };
 
     if (editId) {
-      await supabase.from('employees').update(payload).eq('id', editId);
+      const { error } = await supabase.from('employees').update(payload).eq('id', editId);
+      if (error) { alert('\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f: ' + error.message); return; }
+      alert('\u5f93\u696d\u54e1\u60c5\u5831\u3092\u66f4\u65b0\u3057\u307e\u3057\u305f');
     } else {
-      await supabase.from('employees').insert(payload);
+      const { error } = await supabase.from('employees').insert(payload);
+      if (error) { alert('\u767b\u9332\u306b\u5931\u6557\u3057\u307e\u3057\u305f: ' + error.message); return; }
+      alert('\u65b0\u3057\u3044\u5f93\u696d\u54e1\u3092\u767b\u9332\u3057\u307e\u3057\u305f');
     }
     setShowForm(false);
     fetchEmployees();
   }
 
   async function toggleActive(emp: Employee) {
-    await supabase.from('employees').update({ is_active: !emp.is_active }).eq('id', emp.id);
+    const newState = !emp.is_active;
+    const { error } = await supabase.from('employees').update({ is_active: newState }).eq('id', emp.id);
+    if (error) { alert('\u5909\u66f4\u306b\u5931\u6557\u3057\u307e\u3057\u305f'); return; }
+    alert(newState ? '\u5728\u7c4d\u306b\u5909\u66f4\u3057\u307e\u3057\u305f' : '\u4f11\u6b62\u306b\u5909\u66f4\u3057\u307e\u3057\u305f');
     fetchEmployees();
   }
 
@@ -325,7 +332,7 @@ export default function EmployeesPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">職務手当</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">職勤手当</label>
                       <input type="number" value={form.position_allowance}
                         onChange={(e) => setForm({ ...form, position_allowance: e.target.value })}
                         className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
@@ -384,7 +391,7 @@ export default function EmployeesPage() {
                         }`}
                       >
                         <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                          form.japanese_study_fee_enabled ? 'translate-x-6' : 'translate-x-0.5'
+                          form.japanese_study_fee_enabled? 'translate-x-6' : 'translate-x-0.5'
                         }`} />
                       </button>
                     </div>

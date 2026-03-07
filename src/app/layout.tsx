@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     title: "Cham",
-    capable: true,
+    capable: false,
     statusBarStyle: "default",
   },
 };

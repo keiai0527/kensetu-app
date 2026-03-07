@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Cham",
   description: "出勤管理アプリ - 株式会社敬愛興業",
+  manifest: "/manifest.json",
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     title: "Cham",
     capable: true,

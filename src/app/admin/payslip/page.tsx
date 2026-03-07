@@ -136,11 +136,14 @@ export default function PayslipPage() {
 
   function printPayslip(p: PayslipData) {
     const [y, m] = p.yearMonth.split('-');
+    const yen = '\u5186';
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<title>給与明細 ${p.employeeName} ${y}年${m}月</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${p.employeeName} ${y}${yen}${m}${yen} - ${yen}${yen}${yen}${yen}${yen}</title>
 <style>
-  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; max-width: 600px; margin: 40px auto; font-size: 14px; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; font-size: 14px; }
   h1 { text-align: center; font-size: 20px; border-bottom: 3px double #333; padding-bottom: 10px; }
   .info { display: flex; justify-content: space-between; margin: 15px 0; }
   table { width: 100%; border-collapse: collapse; margin: 10px 0; }
@@ -150,8 +153,16 @@ export default function PayslipPage() {
   .section-title { background: #333; color: #fff; text-align: center; font-weight: bold; }
   .total-row th, .total-row td { background: #fff8e1; font-weight: bold; font-size: 15px; }
   .net-row th, .net-row td { background: #e8f5e9; font-weight: bold; font-size: 18px; }
-  @media print { body { margin: 20px; } }
+  .no-print { margin-bottom: 15px; display: flex; gap: 10px; }
+  .no-print button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  .btn-back { background: #6b7280; color: #fff; }
+  .btn-print { background: #2563eb; color: #fff; }
+  @media print { .no-print { display: none !important; } body { margin: 10px; padding: 0; } }
 </style></head><body>
+<div class="no-print">
+  <button class="btn-back" onclick="window.close(); if(!window.closed) history.back();">← 戻る</button>
+  <button class="btn-print" onclick="window.print();">印刷 / PDF保存</button>
+</div>
 <h1>給 与 明 細 書</h1>
 <div class="info">
   <div><strong>${p.employeeName}</strong>${p.employeeNameVi ? ` (${p.employeeNameVi})` : ''} 様</div>
@@ -161,8 +172,8 @@ export default function PayslipPage() {
 
 <table>
   <tr class="section-title"><td colspan="2">【支給】</td></tr>
-  <tr><th>基本給（${p.baseDailyWage.toLocaleString()}円 × ${p.dayCount}日）</th><td>${p.basicSalary.toLocaleString()}</td></tr>
-  ${p.nightCount > 0 ? `<tr><th>夜勤手当（${p.nightAllowancePerDay.toLocaleString()}円 × ${p.nightCount}日）</th><td>${p.nightPay.toLocaleString()}</td></tr>` : ''}
+  <tr><th>基本給（${p.baseDailyWage.toLocaleString()}${yen} × ${p.dayCount}日）</th><td>${p.basicSalary.toLocaleString()}</td></tr>
+  ${p.nightCount > 0 ? `<tr><th>夜勤手当（${p.nightAllowancePerDay.toLocaleString()}${yen} × ${p.nightCount}日）</th><td>${p.nightPay.toLocaleString()}</td></tr>` : ''}
   ${p.overtimePay > 0 ? `<tr><th>残業手当（${p.overtimeHours}h）</th><td>${p.overtimePay.toLocaleString()}</td></tr>` : ''}
   ${p.positionAllowance > 0 ? `<tr><th>職務手当</th><td>${p.positionAllowance.toLocaleString()}</td></tr>` : ''}
   ${p.tripAllowance > 0 ? `<tr><th>出張手当</th><td>${p.tripAllowance.toLocaleString()}</td></tr>` : ''}
@@ -184,7 +195,7 @@ export default function PayslipPage() {
 </table>
 
 <table>
-  <tr class="net-row"><th>差引支給額</th><td>${p.netSalary.toLocaleString()}円</td></tr>
+  <tr class="net-row"><th>差引支給額</th><td>${p.netSalary.toLocaleString()}${yen}</td></tr>
 </table>
 
 <div style="text-align:center;margin-top:30px;font-size:11px;color:#999;">
@@ -193,7 +204,24 @@ export default function PayslipPage() {
 </body></html>`;
 
     const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); }
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+    } else {
+      // ポップアップブロック対策：同一ページ内で表示
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:99999;background:#fff;';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(html.replace(
+          'onclick="window.close(); if(!window.closed) history.back();"',
+          `onclick="document.getElementById('payslip-iframe')?.remove(); parent.document.querySelector('iframe[style]')?.remove();"`
+        ));
+        doc.close();
+      }
+    }
   }
 
   const selected = payslips.find(p => p.employeeId === selectedEmp);
@@ -233,7 +261,7 @@ export default function PayslipPage() {
                 >
                   <div className="font-bold">{p.employeeName}</div>
                   <div className={`text-sm ${selectedEmp === p.employeeId ? 'text-blue-100' : 'text-gray-500'}`}>
-                    支給: {p.netSalary.toLocaleString()}円
+                    支給: {p.netSalary.toLocaleString()}{'\u5186'}
                   </div>
                 </button>
               ))}
@@ -308,7 +336,7 @@ export default function PayslipPage() {
                       )}
                       {selected.fineAmount > 0 && (
                         <div className="flex justify-between text-red-600">
-                          <span>罰金{selected.fineReason ? `（${selected.fineReason}}）` : ''}</span>
+                          <span>罰金{selected.fineReason ? `（${selected.fineReason}）` : ''}</span>
                           <span>{selected.fineAmount.toLocaleString()}</span>
                         </div>
                       )}
@@ -324,7 +352,7 @@ export default function PayslipPage() {
                   {/* 差引支給額 */}
                   <div className="bg-green-50 rounded-lg p-4 text-center mb-4">
                     <span className="text-sm text-gray-600">差引支給額</span>
-                    <div className="text-3xl font-bold text-green-700">{selected.netSalary.toLocaleString()}兆</div>
+                    <div className="text-3xl font-bold text-green-700">{selected.netSalary.toLocaleString()}{'\u5186'}</div>
                   </div>
 
                   <div className="flex gap-3">

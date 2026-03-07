@@ -187,7 +187,7 @@ export default function InvoicePage() {
       const otAmount = totalOvertime * otRate;
       const subtotal = dayAmount + nightAmount + otAmount;
       const tax = Math.floor(subtotal * 0.1);
-      const g2andTotal = subtotal + tax;
+      const grandTotal = subtotal + tax;
 
       const wsData: (string | number | null)[][] = [];
       // Row 1: empty
@@ -225,7 +225,7 @@ export default function InvoicePage() {
       wsData.push(r10);
       // Row 11
       const r11 = new Array(18).fill(null);
-      r11[10] = 'keiai0527@gmail.com';
+      r11[10] = 'keiai0027@gmail.com';
       wsData.push(r11);
       // Row 12
       const r12 = new Array(18).fill(null);
@@ -244,14 +244,14 @@ export default function InvoicePage() {
       // Row 15-17
       wsData.push(['\u3053\u306e\u58f2\u308a\u4e0a\u3052\u306e10\uff05\u3092\u3051\u3044\u3042\u3044\u5b50\u3069\u3082\u98df\u5802\u3068']);
       const r16 = new Array(18).fill(null);
-      r16[0] = '\u30b1\u30a4\u30a2\u30a4\u30cf\u30d4\u30cd\u30b9\u4fbf\uff08\u975e\u55b6\u5229\u56e3\u4f53\uff09\u306b';
+      r16[0] = '\u30b1\u30a4\u30a2\u30a4\u30cf\u30d4\u30cd\u30b9\u4fbb\uff08\u975e\u55b6\u5229\u56e3\u4f53\uff09\u306b';
       r16[10] = '\u632f\u308a\u8fbc\u307f\u671f\u65e5';
       r16[12] = `${selectedYear}/${selectedMonth}/\u672b`;
       wsData.push(r16);
       wsData.push(['\u5bc4\u4ed8\u3055\u305b\u3066\u3044\u305f\u3060\u304d\u307e\u3059\u3002']);
       // Row 18: empty
       wsData.push([]);
-      // Row 19: headers (A=æ¥ä»çªå·, C=åå, J=æ°é, L=åä½, N=åä¾¡, P=åè¨)
+      // Row 19: headers (A=日付番号, C=品名, J=数量, L=単位, N=単価, P=合計)
       const r19 = new Array(18).fill(null);
       r19[0] = '\u65e5\u4ed8\u30fb\u756a\u53f7'; r19[2] = '\u54c1\u540d\u30fb\u54c1\u756a';
       r19[9] = '\u6570\u91cf'; r19[11] = '\u5358\u4f4d'; r19[13] = '\u5358\u4fa1'; r19[15] = '\u5408\u8a08';

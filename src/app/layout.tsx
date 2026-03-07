@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className="antialiased flex flex-col min-h-screen pb-8">
         <header className="bg-blue-700 text-white text-center py-4">
           <h1 className="text-2xl font-bold">Cham</h1>
-          <p className="text-sm opacity-80">Ứng dụng quản lý chấm công</p>
+          <p className="text-sm opacity-80">勤怠管理・給与計算システム</p>
         </header>
         <div className="flex-1">
           {children}

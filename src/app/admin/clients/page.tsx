@@ -6,15 +6,14 @@ import { supabase } from '@/lib/supabase';
 type Client = {
   id: string;
   name: string;
-  day_rate: number;
-  night_rate: number;
-  trip_day_rate: number;
-  trip_night_rate: number;
-  closing_day: number;
-  has_night_shift: boolean;
-  has_trip: boolean;
+  honorific_name: string | null;
+  address: string | null;
+  contact_person: string | null;
+  daily_rate: number;
+  overtime_rate: number;
+  billing_day_start: number;
+  billing_day_end: number;
   is_active: boolean;
-  display_order: number;
 };
 
 export default function ClientsPage() {
@@ -23,8 +22,14 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    name: '', day_rate: '0', night_rate: '0', trip_day_rate: '0', trip_night_rate: '0',
-    closing_day: '31', has_night_shift: false, has_trip: false, display_order: '0',
+    name: '',
+    honorific_name: '',
+    address: '',
+    contact_person: '',
+    daily_rate: '16000',
+    overtime_rate: '2300',
+    billing_day_start: '21',
+    billing_day_end: '20',
   });
 
   useEffect(() => {
@@ -36,157 +41,257 @@ export default function ClientsPage() {
   }, []);
 
   async function fetchClients() {
-    const { data } = await supabase.from('clients').select('*').order('display_order');
+    const { data } = await supabase
+      .from('clients')
+      .select('*')
+      .order('name');
     if (data) setClients(data);
     setLoading(false);
   }
 
   function handleNew() {
     setEditId(null);
-    setForm({ name: '', day_rate: '0', night_rate: '0', trip_day_rate: '0', trip_night_rate: '0', closing_day: '31', has_night_shift: false, has_trip: false, display_order: '0' });
+    setForm({
+      name: '', honorific_name: '', address: '', contact_person: '',
+      daily_rate: '16000', overtime_rate: '2300',
+      billing_day_start: '21', billing_day_end: '20',
+    });
     setShowForm(true);
   }
 
   function handleEdit(c: Client) {
     setEditId(c.id);
     setForm({
-      name: c.name, day_rate: String(c.day_rate), night_rate: String(c.night_rate),
-      trip_day_rate: String(c.trip_day_rate), trip_night_rate: String(c.trip_night_rate),
-      closing_day: String(c.closing_day), has_night_shift: c.has_night_shift, has_trip: c.has_trip,
-      display_order: String(c.display_order),
+      name: c.name || '',
+      honorific_name: c.honorific_name || '',
+      address: c.address || '',
+      contact_person: c.contact_person || '',
+      daily_rate: String(c.daily_rate),
+      overtime_rate: String(c.overtime_rate),
+      billing_day_start: String(c.billing_day_start),
+      billing_day_end: String(c.billing_day_end),
     });
     setShowForm(true);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSave() {
     const payload = {
       name: form.name,
-      day_rate: parseInt(form.day_rate), night_rate: parseInt(form.night_rate),
-      trip_day_rate: parseInt(form.trip_day_rate), trip_night_rate: parseInt(form.trip_night_rate),
-      closing_day: parseInt(form.closing_day), has_night_shift: form.has_night_shift,
-      has_trip: form.has_trip, display_order: parseInt(form.display_order),
+      honorific_name: form.honorific_name || form.name + ' 御中',
+      address: form.address || null,
+      contact_person: form.contact_person || null,
+      daily_rate: parseInt(form.daily_rate) || 16000,
+      overtime_rate: parseInt(form.overtime_rate) || 2300,
+      billing_day_start: parseInt(form.billing_day_start) || 21,
+      billing_day_end: parseInt(form.billing_day_end) || 20,
+      is_active: true,
     };
+
     if (editId) {
-      await supabase.from('clients').update(payload).eq('id', editId);
+      const { error } = await supabase.from('clients').update(payload).eq('id', editId);
+      if (error) { alert('\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f: ' + error.message); return; }
+      alert('\u53d6\u5f15\u5148\u3092\u66f4\u65b0\u3057\u307e\u3057\u305f');
     } else {
-      await supabase.from('clients').insert(payload);
+      const { error } = await supabase.from('clients').insert(payload);
+      if (error) { alert('\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f: ' + error.message); return; }
+      alert('\u53d6\u5f15\u5148\u3092\u8ffd\u52a0\u3057\u307e\u3057\u305f');
     }
     setShowForm(false);
     fetchClients();
   }
 
+  async function handleToggleActive(c: Client) {
+    const newStatus = !c.is_active;
+    const msg = newStatus ? '\u6709\u52b9\u306b\u3057\u307e\u3059\u304b\uff1f' : '\u7121\u52b9\u306b\u3057\u307e\u3059\u304b\uff1f';
+    if (!confirm(c.name + ' \u3092' + msg)) return;
+    await supabase.from('clients').update({ is_active: newStatus }).eq('id', c.id);
+    fetchClients();
+  }
+
+  function formatYen(n: number) {
+    return '\u00a5' + n.toLocaleString();
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-gray-500">読み込み中...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-gray-800 text-white p-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <a href="/admin" className="text-gray-300 hover:text-white">&larr; 管理画面</a>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-lg font-bold">取引先マスター</h1>
-          <button onClick={handleNew} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">+ 新規追加</button>
+          <a href="/admin" className="text-gray-300 hover:text-white text-sm">\u2190 管理画面</a>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto p-4">
-        {loading ? (
-          <div className="text-center py-8 text-gray-500">読み込み中...</div>
-        ) : (
-          <div className="bg-white rounded-xl shadow overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left font-bold">取引先名</th>
-                  <th className="px-3 py-3 text-right font-bold">日勤単価</th>
-                  <th className="px-3 py-3 text-right font-bold">夜勤単価</th>
-                  <th className="px-3 py-3 text-right font-bold">出張日勤</th>
-                  <th className="px-3 py-3 text-right font-bold">出張夜勤</th>
-                  <th className="px-3 py-3 text-center font-bold">締め日</th>
-                  <th className="px-3 py-3 text-center font-bold">夜勤</th>
-                  <th className="px-3 py-3 text-center font-bold">出張</th>
-                  <th className="px-3 py-3 text-center font-bold">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {clients.map(c => (
-                  <tr key={c.id} className={!c.is_active ? 'opacity-40' : ''}>
-                    <td className="px-3 py-3 font-bold">{c.name}</td>
-                    <td className="px-3 py-3 text-right">{c.day_rate.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-right">{c.night_rate.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-right">{c.trip_day_rate.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-right">{c.trip_night_rate.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-center">{c.closing_day === 31 ? '月末' : `${c.closing_day}日`}</td>
-                    <td className="px-3 py-3 text-center">{c.has_night_shift ? '○' : '-'}</td>
-                    <td className="px-3 py-3 text-center">{c.has_trip ? '○' : '-'}</td>
-                    <td className="px-3 py-3 text-center">
-                      <button onClick={() => handleEdit(c)} className="text-blue-600 hover:text-blue-800 font-bold">編集</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <main className="max-w-4xl mx-auto p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-sm text-gray-500">
+            {clients.filter(c => c.is_active).length} 社（有効）/ {clients.length} 社（全体）
+          </div>
+          <button
+            onClick={handleNew}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700"
+          >
+            + 新規取引先
+          </button>
+        </div>
+
+        {/* 取引先一覧 */}
+        <div className="space-y-3">
+          {clients.map(c => (
+            <div
+              key={c.id}
+              className={`bg-white rounded-xl shadow p-4 ${!c.is_active ? 'opacity-50' : ''}`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="font-bold text-gray-800 text-lg">{c.name}</div>
+                  {c.address && <div className="text-sm text-gray-500 mt-1">{c.address}</div>}
+                  {c.contact_person && <div className="text-sm text-gray-500">担当: {c.contact_person}</div>}
+                  <div className="flex gap-4 mt-2">
+                    <span className="text-sm bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                      日当 {formatYen(c.daily_rate)}
+                    </span>
+                    <span className="text-sm bg-green-50 text-green-700 px-2 py-0.5 rounded">
+                      残業 {formatYen(c.overtime_rate)}/h
+                    </span>
+                    <span className="text-sm bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                      締日 {c.billing_day_start}日〜{c.billing_day_end}日
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={() => handleEdit(c)}
+                    className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1"
+                  >
+                    編集
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(c)}
+                    className={`text-sm px-2 py-1 ${c.is_active ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'}`}
+                  >
+                    {c.is_active ? '無効化' : '有効化'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {clients.length === 0 && (
+          <div className="text-center py-12 text-gray-400">
+            取引先が登録されていません
+          </div>
+        )}
+
+        {/* フォームモーダル */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-5 border-b">
+                <h2 className="text-lg font-bold">
+                  {editId ? '取引先の編集' : '新規取引先'}
+                </h2>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">会社名 *</label>
+                  <input
+                    type="text" value={form.name}
+                    onChange={e => setForm({...form, name: e.target.value})}
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="株式会社　カナヤマ"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">請求書表示名</label>
+                  <input
+                    type="text" value={form.honorific_name}
+                    onChange={e => setForm({...form, honorific_name: e.target.value})}
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="自動: 会社名 + 御中"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">住所</label>
+                  <input
+                    type="text" value={form.address}
+                    onChange={e => setForm({...form, address: e.target.value})}
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="京都市南区..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">担当者</label>
+                  <input
+                    type="text" value={form.contact_person}
+                    onChange={e => setForm({...form, contact_person: e.target.value})}
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">日当単価（円）</label>
+                    <input
+                      type="number" value={form.daily_rate}
+                      onChange={e => setForm({...form, daily_rate: e.target.value})}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">残業単価（円/h）</label>
+                    <input
+                      type="number" value={form.overtime_rate}
+                      onChange={e => setForm({...form, overtime_rate: e.target.value})}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">請求開始日</label>
+                    <input
+                      type="number" value={form.billing_day_start} min="1" max="28"
+                      onChange={e => setForm({...form, billing_day_start: e.target.value})}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">請求終了日</label>
+                    <input
+                      type="number" value={form.billing_day_end} min="1" max="28"
+                      onChange={e => setForm({...form, billing_day_end: e.target.value})}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 border-t flex justify-end gap-3">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!form.name}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  保存
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">{editId ? '取引先を編集' : '取引先を追加'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="block text-sm font-bold mb-1">取引先名 *</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full p-3 border-2 rounded-lg" required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold mb-1">日勤単価</label>
-                  <input type="number" value={form.day_rate} onChange={(e) => setForm({...form, day_rate: e.target.value})} className="w-full p-3 border-2 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">夜勤単価</label>
-                  <input type="number" value={form.night_rate} onChange={(e) => setForm({...form, night_rate: e.target.value})} className="w-full p-3 border-2 rounded-lg" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold mb-1">出張日勤単価</label>
-                  <input type="number" value={form.trip_day_rate} onChange={(e) => setForm({...form, trip_day_rate: e.target.value})} className="w-full p-3 border-2 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">出張夜勤単価</label>
-                  <input type="number" value={form.trip_night_rate} onChange={(e) => setForm({...form, trip_night_rate: e.target.value})} className="w-full p-3 border-2 rounded-lg" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold mb-1">締め日</label>
-                  <select value={form.closing_day} onChange={(e) => setForm({...form, closing_day: e.target.value})} className="w-full p-3 border-2 rounded-lg">
-                    <option value="20">20日</option>
-                    <option value="31">月末</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">表示順</label>
-                  <input type="number" value={form.display_order} onChange={(e) => setForm({...form, display_order: e.target.value})} className="w-full p-3 border-2 rounded-lg" />
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={form.has_night_shift} onChange={(e) => setForm({...form, has_night_shift: e.target.checked})} className="w-5 h-5" />
-                  <span className="font-bold">夜勤あり</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={form.has_trip} onChange={(e) => setForm({...form, has_trip: e.target.checked})} className="w-5 h-5" />
-                  <span className="font-bold">出張あり</span>
-                </label>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 border-2 rounded-lg font-bold hover:bg-gray-100">キャンセル</button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">{editId ? '更新' : '追加'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

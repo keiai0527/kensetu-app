@@ -10,7 +10,7 @@ type Client = {
   address: string | null;
   day_rate: number;
   night_rate: number;
-  overtime_rate: number;
+  overtime_rate: number
   closing_day: number;
   billing_day_start: number;
   billing_day_end: number;
@@ -483,7 +483,7 @@ export default function InvoicePage() {
 
       // Electronic seal image (positioned near company name, E-F area)
       try {
-        const imageId = workbook.addImage({ base64: SEAL_BASE64, extension: 'png' });
+        const imageId = workbook.addImage({ base64: `data:image/png;base64,${SEAL_BASE64}`, extension: 'png' });
         ws.addImage(imageId, {
           tl: { col: 4.2, row: 5.2 } as any,
           ext: { width: 70, height: 70 },

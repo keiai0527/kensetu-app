@@ -9,7 +9,7 @@ type Client = {
   honorific_name: string | null;
   address: string | null;
   contact_person: string | null;
-  daily_rate: number;
+  day_rate: number;
   overtime_rate: number;
   billing_day_start: number;
   billing_day_end: number;
@@ -26,7 +26,7 @@ export default function ClientsPage() {
     honorific_name: '',
     address: '',
     contact_person: '',
-    daily_rate: '16000',
+    day_rate: '16000',
     overtime_rate: '2300',
     billing_day_start: '21',
     billing_day_end: '20',
@@ -53,7 +53,7 @@ export default function ClientsPage() {
     setEditId(null);
     setForm({
       name: '', honorific_name: '', address: '', contact_person: '',
-      daily_rate: '16000', overtime_rate: '2300',
+      day_rate: '16000', overtime_rate: '2300',
       billing_day_start: '21', billing_day_end: '20',
     });
     setShowForm(true);
@@ -66,7 +66,7 @@ export default function ClientsPage() {
       honorific_name: c.honorific_name || '',
       address: c.address || '',
       contact_person: c.contact_person || '',
-      daily_rate: String(c.daily_rate),
+      day_rate: String(c.day_rate),
       overtime_rate: String(c.overtime_rate),
       billing_day_start: String(c.billing_day_start),
       billing_day_end: String(c.billing_day_end),
@@ -80,7 +80,7 @@ export default function ClientsPage() {
       honorific_name: form.honorific_name || form.name + ' 御中',
       address: form.address || null,
       contact_person: form.contact_person || null,
-      daily_rate: parseInt(form.daily_rate) || 16000,
+      day_rate: parseInt(form.day_rate) || 16000,
       overtime_rate: parseInt(form.overtime_rate) || 2300,
       billing_day_start: parseInt(form.billing_day_start) || 21,
       billing_day_end: parseInt(form.billing_day_end) || 20,
@@ -108,8 +108,8 @@ export default function ClientsPage() {
     fetchClients();
   }
 
-  function formatYen(n: number) {
-    return '\u00a5' + n.toLocaleString();
+  function formatYen(n: number | undefined | null) {
+    return '\u00a5' + (n ?? 0).toLocaleString();
   }
 
   if (loading) {
@@ -156,7 +156,7 @@ export default function ClientsPage() {
                   {c.contact_person && <div className="text-sm text-gray-500">担当: {c.contact_person}</div>}
                   <div className="flex gap-4 mt-2">
                     <span className="text-sm bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                      日当 {formatYen(c.daily_rate)}
+                      日当 {formatYen(c.day_rate)}
                     </span>
                     <span className="text-sm bg-green-50 text-green-700 px-2 py-0.5 rounded">
                       残業 {formatYen(c.overtime_rate)}/h
@@ -240,8 +240,8 @@ export default function ClientsPage() {
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">日当単価（円）</label>
                     <input
-                      type="number" value={form.daily_rate}
-                      onChange={e => setForm({...form, daily_rate: e.target.value})}
+                      type="number" value={form.day_rate}
+                      onChange={e => setForm({...form, day_rate: e.target.value})}
                       className="w-full border rounded-lg px-3 py-2"
                     />
                   </div>

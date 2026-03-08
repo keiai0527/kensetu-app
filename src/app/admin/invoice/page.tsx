@@ -480,8 +480,6 @@ export default function InvoicePage() {
       ws.getCell(`A${dataRow}`).value = 'この売り上げの10％をけいあい子ども食堂とケイアイハピネス便（非営利団体）に寄付させていただきます。';
       ws.getCell(`A${dataRow}`).font = { size: 8, name: 'Yu Gothic', color: { argb: 'FF666666' } };
 
-        console.warn('Seal image creation failed:', e);
-      }
 
       // Download
       const buffer = await workbook.xlsx.writeBuffer();

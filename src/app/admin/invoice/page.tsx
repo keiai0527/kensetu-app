@@ -483,10 +483,10 @@ export default function InvoicePage() {
 
       // Electronic seal image (positioned near company address area)
       try {
-      const imageId = workbook.addImage({ base64: SEAL_BASE64, extension: 'png' });
+      const imageId = workbook.addImage({ base64: `data:image/png;base64,${SEAL_BASE64.trim()}`, extension: 'png' });
         ws.addImage(imageId, {
-          tl: { col: 4.5, row: 5.5 } as any,
-        ext: { width: 120, height: 120 },
+          tl: { col: 4, row: 5 } as any,
+        ext: { width: 150, height: 150 },
         });
       } catch (e) {
         console.warn('Seal image creation failed:', e);
@@ -494,7 +494,7 @@ export default function InvoicePage() {
 
       // Download
       const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

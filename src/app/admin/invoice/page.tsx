@@ -201,7 +201,7 @@ export default function InvoicePage() {
 
       const thinBorder = { style: 'thin' as const, color: { argb: 'FF000000' } };
       const medBorder = { style: 'medium' as const, color: { argb: 'FF000000' } };
-      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF2B4C7E' } };
+      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFF8080' } };
       const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Yu Gothic' };
       const normalFont = { size: 10, name: 'Yu Gothic' };
       const smallFont = { size: 9, name: 'Yu Gothic' };
@@ -288,10 +288,17 @@ export default function InvoicePage() {
       ws.getCell('C12').numFmt = '¥#,##0';
       ws.getCell('C12').font = { bold: true, size: 16, name: 'Yu Gothic' };
       ws.getCell('C12').alignment = { horizontal: 'center', vertical: 'middle' };
-      ws.getCell('C12').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
-      ws.getCell('C12').border = { top: medBorder, bottom: medBorder, left: medBorder, right: medBorder };
-      ws.getCell('D12').border = { top: medBorder, bottom: medBorder };
-      ws.getCell('E12').border = { top: medBorder, bottom: medBorder };
+      // Full box border around billing amount
+      for (const col of ['A','B','C','D','E','F']) {
+        const c = ws.getCell(col + '12');
+        c.border = {
+          top: medBorder,
+          bottom: medBorder,
+          left: col === 'A' ? medBorder : undefined,
+          right: col === 'F' ? medBorder : undefined,
+        };
+      }
+      ws.getCell('A12').border = { top: medBorder, bottom: medBorder, left: medBorder };
       ws.getCell('F12').border = { top: medBorder, bottom: medBorder, right: medBorder };
       ws.getRow(12).height = 30;
 
@@ -417,9 +424,9 @@ export default function InvoicePage() {
           bottom: thinBorder,
         };
       }
-      ws.getCell(`A${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
-      ws.getCell(`E${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
-      ws.getCell(`F${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+      ws.getCell(`A${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } };
+      ws.getCell(`E${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } };
+      ws.getCell(`F${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } };
       dataRow++;
 
       // Tax row
@@ -460,9 +467,9 @@ export default function InvoicePage() {
           bottom: medBorder,
         };
       }
-      ws.getCell(`A${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-      ws.getCell(`E${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-      ws.getCell(`F${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+      ws.getCell(`A${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8080' } };
+      ws.getCell(`E${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8080' } };
+      ws.getCell(`F${dataRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8080' } };
       ws.getRow(dataRow).height = 24;
       dataRow++;
 
@@ -512,7 +519,7 @@ export default function InvoicePage() {
 
       const thinBorder = { style: 'thin' as const, color: { argb: 'FF000000' } };
       const medBorder = { style: 'medium' as const, color: { argb: 'FF000000' } };
-      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF2B4C7E' } };
+      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFF8080' } };
       const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Yu Gothic' };
       const normalFont = { size: 10, name: 'Yu Gothic' };
       const boldFont = { bold: true, size: 10, name: 'Yu Gothic' };
@@ -606,7 +613,7 @@ export default function InvoicePage() {
         cell.value = totalLabels[i];
         cell.font = boldFont;
         cell.alignment = { horizontal: i <= 2 || i === 10 ? 'left' : 'center', vertical: 'middle' };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } };
         cell.border = {
           top: medBorder,
           bottom: medBorder,

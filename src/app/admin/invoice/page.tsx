@@ -19,7 +19,7 @@ type Client = {
 
 type AttendanceRecord = {
   id: string;
-  employee_id: string;
+  employee_id: string
   date: string;
   shift_type: string;
   is_holiday: boolean;
@@ -485,8 +485,8 @@ export default function InvoicePage() {
       try {
         const sealBinary = atob(SEAL_BASE64); const sealBytes = new Uint8Array(sealBinary.length); for (let i = 0; i < sealBinary.length; i++) sealBytes[i] = sealBinary.charCodeAt(i); const imageId = workbook.addImage({ buffer: sealBytes.buffer, extension: 'png' });
         ws.addImage(imageId, {
-          tl: { col: 14, row: 6.2 } as any,
-          ext: { width: 70, height: 70 },
+          tl: { col: 4.5, row: 5.5 } as any,
+          ext: { width: 60, height: 60 },
         });
       } catch (e) {
         console.warn('Seal image creation failed:', e);

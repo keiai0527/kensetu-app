@@ -705,7 +705,7 @@ export default function InvoicePage() {
             <button
               onClick={handlePreview}
               disabled={!selectedClientId || previewing}
-              className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50"
+              className="bg-slate-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 disabled:opacity-50"
             >
               {previewing ? '集計中...' : '集計・プレビュー'}
             </button>
@@ -764,10 +764,10 @@ export default function InvoicePage() {
                         <div className="text-gray-800">消費税 (10%):</div>
                         <div className="font-bold">{formatYen(t)}</div>
                       </div>
-                      <div className="mt-3 border-2 border-red-600 rounded-lg p-3 bg-red-50">
+                      <div className="mt-3 border-2 border-slate-600 rounded-lg p-3 bg-slate-50">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-lg">請求金額合計</span>
-                          <span className="font-bold text-2xl text-red-700">{formatYen(sub + t)}</span>
+                          <span className="font-bold text-2xl text-slate-700">{formatYen(sub + t)}</span>
                         </div>
                       </div>
                     </>
@@ -781,7 +781,7 @@ export default function InvoicePage() {
               <h2 className="font-bold text-lg mb-3">出面表プレビュー</h2>
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-red-700 text-white">
+                  <tr className="bg-slate-800 text-white">
                     <th className="border px-2 py-1 text-left">日付</th>
                     <th className="border px-2 py-1">曜</th>
                     <th className="border px-2 py-1 text-left">現場</th>
@@ -793,7 +793,7 @@ export default function InvoicePage() {
                 </thead>
                 <tbody>
                   {dailySummary.map(day => (
-                    <tr key={day.date} className="hover:bg-red-50">
+                    <tr key={day.date} className="hover:bg-slate-50">
                       <td className="border px-2 py-1">{formatDate(day.date)}</td>
                       <td className="border px-2 py-1 text-center">{day.dayOfWeek}</td>
                       <td className="border px-2 py-1">{day.sites}</td>
@@ -803,7 +803,7 @@ export default function InvoicePage() {
                       <td className="border px-2 py-1">{day.workers.join('、')}</td>
                     </tr>
                   ))}
-                  <tr className="bg-red-100 font-bold text-gray-900">
+                  <tr className="bg-slate-100 font-bold text-gray-900">
                     <td className="border px-2 py-1" colSpan={3}>合計</td>
                     <td className="border px-2 py-1 text-center">{totalDays}</td>
                     <td className="border px-2 py-1 text-center">{totalNights || ''}</td>
@@ -819,14 +819,14 @@ export default function InvoicePage() {
               <button
                 onClick={handleDownloadInvoice}
                 disabled={generating}
-                className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-red-700 disabled:opacity-50 shadow"
+                className="flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold text-lg hover:bg-slate-800 disabled:opacity-50 shadow"
               >
                 {generating ? '生成中...' : '請求書ダウンロード'}
               </button>
               <button
                 onClick={handleDownloadDemenpyo}
                 disabled={generating}
-                className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-red-700 disabled:opacity-50 shadow"
+                className="flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold text-lg hover:bg-slate-800 disabled:opacity-50 shadow"
               >
                 {generating ? '生成中...' : '出面表ダウンロード'}
               </button>
@@ -835,7 +835,7 @@ export default function InvoicePage() {
         )}
 
         {hasFetched && dailySummary.length === 0 && !previewing && (
-          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5 text-sm text-red-900">
+          <div className="bg-slate-50 border-2 border-slate-300 rounded-xl p-5 text-sm text-slate-800">
             <p className="font-bold mb-2">該当データがありません</p>
             <p>考えられる原因:</p>
             <ul className="list-disc ml-5 mt-1 space-y-1">

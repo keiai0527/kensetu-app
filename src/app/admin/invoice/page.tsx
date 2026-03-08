@@ -481,11 +481,11 @@ export default function InvoicePage() {
       ws.getCell(`A${dataRow}`).value = 'この売り上げの10％をけいあい子ども食堂とケイアイハピネス便（非営利団体）に寄付させていただきます。';
       ws.getCell(`A${dataRow}`).font = { size: 8, name: 'Yu Gothic', color: { argb: 'FF666666' } };
 
-      // Electronic seal image (positioned near company name, E-F area)
+      // Electronic seal image (positioned near company address area)
       try {
-        const imageId = workbook.addImage({ base64: `data:image/png;base64,${SEAL_BASE64}`, extension: 'png' });
+        const imageId = workbook.addImage({ base64: SEAL_BASE64, extension: 'png' });
         ws.addImage(imageId, {
-          tl: { col: 4.2, row: 5.2 } as any,
+          tl: { col: 14, row: 6.2 } as any,
           ext: { width: 70, height: 70 },
         });
       } catch (e) {

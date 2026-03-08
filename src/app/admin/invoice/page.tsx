@@ -636,7 +636,7 @@ export default function InvoicePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-500">読み込み中...</div>
+        <div className="text-gray-700">読み込み中...</div>
       </div>
     );
   }
@@ -645,10 +645,10 @@ export default function InvoicePage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-gray-800 text-white p-4">
+      <header className="bg-gray-900 text-white p-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-lg font-bold">請求書・出面表</h1>
-          <a href="/admin" className="text-gray-300 hover:text-white text-sm">← 管理画面</a>
+          <a href="/admin" className="text-gray-100 hover:text-white text-sm">← 管理画面</a>
         </div>
       </header>
 
@@ -657,7 +657,7 @@ export default function InvoicePage() {
         <div className="bg-white rounded-xl shadow p-5 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">取引先</label>
+              <label className="block text-sm font-bold text-gray-900 mb-1">取引先</label>
               <select
                 value={selectedClientId}
                 onChange={e => { setSelectedClientId(e.target.value); setHasFetched(false); setDailySummary([]); }}
@@ -670,7 +670,7 @@ export default function InvoicePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">年</label>
+              <label className="block text-sm font-bold text-gray-900 mb-1">年</label>
               <select
                 value={selectedYear}
                 onChange={e => { setSelectedYear(Number(e.target.value)); setHasFetched(false); setDailySummary([]); }}
@@ -682,7 +682,7 @@ export default function InvoicePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">月</label>
+              <label className="block text-sm font-bold text-gray-900 mb-1">月</label>
               <select
                 value={selectedMonth}
                 onChange={e => { setSelectedMonth(Number(e.target.value)); setHasFetched(false); setDailySummary([]); }}
@@ -698,7 +698,7 @@ export default function InvoicePage() {
             <button
               onClick={handlePreview}
               disabled={!selectedClientId || previewing}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
+              className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50"
             >
               {previewing ? '集計中...' : '集計・プレビュー'}
             </button>
@@ -711,24 +711,24 @@ export default function InvoicePage() {
             {/* 請求サマリー */}
             <div className="bg-white rounded-xl shadow p-5 mb-4">
               <h2 className="font-bold text-lg mb-3">請求サマリー</h2>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-white rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-gray-600">取引先:</div>
+                  <div className="text-gray-800">取引先:</div>
                   <div className="font-bold">{client.name}</div>
-                  <div className="text-gray-600">請求期間:</div>
+                  <div className="text-gray-800">請求期間:</div>
                   <div className="font-bold">
                     {(() => {
                       const { startDate, endDate } = getBillingPeriod(selectedYear, selectedMonth, client);
                       return `${formatDate(startDate)} ～ ${formatDate(endDate)}`;
                     })()}
                   </div>
-                  <div className="text-gray-600">解体作業代金:</div>
+                  <div className="text-gray-800">解体作業代金:</div>
                   <div className="font-bold">
                     {totalDays}人日 × {formatYen(client.day_rate)} = {formatYen(totalDays * client.day_rate)}
                   </div>
                   {totalNights > 0 && (
                     <>
-                      <div className="text-gray-600">夜勤代金:</div>
+                      <div className="text-gray-800">夜勤代金:</div>
                       <div className="font-bold">
                         {totalNights}人日 × {formatYen(client.night_rate)} = {formatYen(totalNights * client.night_rate)}
                       </div>
@@ -736,7 +736,7 @@ export default function InvoicePage() {
                   )}
                   {totalOvertime > 0 && (
                     <>
-                      <div className="text-gray-600">残業代:</div>
+                      <div className="text-gray-800">残業代:</div>
                       <div className="font-bold">
                         {totalOvertime}h × {formatYen(client.overtime_rate || 2300)} = {formatYen(totalOvertime * (client.overtime_rate || 2300))}
                       </div>
@@ -752,15 +752,15 @@ export default function InvoicePage() {
                   return (
                     <>
                       <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                        <div className="text-gray-600">小計:</div>
+                        <div className="text-gray-800">小計:</div>
                         <div className="font-bold">{formatYen(sub)}</div>
-                        <div className="text-gray-600">消費税 (10%):</div>
+                        <div className="text-gray-800">消費税 (10%):</div>
                         <div className="font-bold">{formatYen(t)}</div>
                       </div>
-                      <div className="border-t mt-3 pt-3">
+                      <div className="mt-3 border-2 border-red-600 rounded-lg p-3 bg-red-50">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-lg">請求金額合計</span>
-                          <span className="font-bold text-2xl text-green-700">{formatYen(sub + t)}</span>
+                          <span className="font-bold text-2xl text-red-700">{formatYen(sub + t)}</span>
                         </div>
                       </div>
                     </>
@@ -774,7 +774,7 @@ export default function InvoicePage() {
               <h2 className="font-bold text-lg mb-3">出面表プレビュー</h2>
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-gray-100">
+                  <tr className="bg-red-700 text-white">
                     <th className="border px-2 py-1 text-left">日付</th>
                     <th className="border px-2 py-1">曜</th>
                     <th className="border px-2 py-1 text-left">現場</th>
@@ -786,7 +786,7 @@ export default function InvoicePage() {
                 </thead>
                 <tbody>
                   {dailySummary.map(day => (
-                    <tr key={day.date} className="hover:bg-gray-50">
+                    <tr key={day.date} className="hover:bg-red-50">
                       <td className="border px-2 py-1">{formatDate(day.date)}</td>
                       <td className="border px-2 py-1 text-center">{day.dayOfWeek}</td>
                       <td className="border px-2 py-1">{day.sites}</td>
@@ -796,7 +796,7 @@ export default function InvoicePage() {
                       <td className="border px-2 py-1">{day.workers.join('、')}</td>
                     </tr>
                   ))}
-                  <tr className="bg-gray-100 font-bold">
+                  <tr className="bg-red-100 font-bold text-gray-900">
                     <td className="border px-2 py-1" colSpan={3}>合計</td>
                     <td className="border px-2 py-1 text-center">{totalDays}</td>
                     <td className="border px-2 py-1 text-center">{totalNights || ''}</td>
@@ -812,14 +812,14 @@ export default function InvoicePage() {
               <button
                 onClick={handleDownloadInvoice}
                 disabled={generating}
-                className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-50 shadow"
+                className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-red-700 disabled:opacity-50 shadow"
               >
                 {generating ? '生成中...' : '請求書ダウンロード'}
               </button>
               <button
                 onClick={handleDownloadDemenpyo}
                 disabled={generating}
-                className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-bold text-lg hover:bg-orange-600 disabled:opacity-50 shadow"
+                className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-red-700 disabled:opacity-50 shadow"
               >
                 {generating ? '生成中...' : '出面表ダウンロード'}
               </button>
@@ -828,7 +828,7 @@ export default function InvoicePage() {
         )}
 
         {hasFetched && dailySummary.length === 0 && !previewing && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 text-sm text-yellow-800">
+          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-5 text-sm text-red-900">
             <p className="font-bold mb-2">該当データがありません</p>
             <p>考えられる原因:</p>
             <ul className="list-disc ml-5 mt-1 space-y-1">

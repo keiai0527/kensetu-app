@@ -494,7 +494,12 @@ export default function InvoicePage() {
 
       // Download
       const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const JSZip = (await import('jszip')).default;
+              const zip = await JSZip.loadAsync(buffer);
+                  const df = zip.file('xl/drawings/drawing1.xml');
+                      if (df) { let x = await df.async('string'); x = x.replace(/cx="0" cy="0"/g, 'cx="800000" cy="800000"'); zip.file('xl/drawings/drawing1.xml', x); }
+                          const fixedBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+      const blob = new Blob([fixedBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

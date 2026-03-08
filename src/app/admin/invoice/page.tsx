@@ -10,7 +10,7 @@ type Client = {
   address: string | null;
   day_rate: number;
   night_rate: number;
-  overtime_rate: numbe
+  overtime_rate: number;
   closing_day: number;
   billing_day_start: number;
   billing_day_end: number;

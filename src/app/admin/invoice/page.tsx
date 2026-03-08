@@ -486,7 +486,7 @@ export default function InvoicePage() {
         const sealBinary = atob(SEAL_BASE64); const sealBytes = new Uint8Array(sealBinary.length); for (let i = 0; i < sealBinary.length; i++) sealBytes[i] = sealBinary.charCodeAt(i); const imageId = workbook.addImage({ buffer: sealBytes.buffer, extension: 'png' });
         ws.addImage(imageId, {
           tl: { col: 4.5, row: 5.5 } as any,
-          ext: { width: 60, height: 60 },
+          br: { col: 5.8, row: 8.5 } as any,
         });
       } catch (e) {
         console.warn('Seal image creation failed:', e);

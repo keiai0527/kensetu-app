@@ -19,7 +19,7 @@ type Client = {
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
@@ -125,7 +125,7 @@ export default function ClientsPage() {
       <header className="bg-gray-800 text-white p-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-lg font-bold">取引先マスター</h1>
-          <a href="/admin" className="text-gray-300 hover:text-white text-sm">\u2190 管理画面</a>
+          <a href="/admin" className="text-gray-300 hover:text-white text-sm">← 管理画面</a>
         </div>
       </header>
 

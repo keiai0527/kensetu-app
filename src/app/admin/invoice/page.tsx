@@ -483,10 +483,10 @@ export default function InvoicePage() {
 
       // Electronic seal image (positioned near company address area)
       try {
-        const sealBinary = atob(SEAL_BASE64); const sealBytes = new Uint8Array(sealBinary.length); for (let i = 0; i < sealBinary.length; i++) sealBytes[i] = sealBinary.charCodeAt(i); const imageId = workbook.addImage({ buffer: sealBytes.buffer, extension: 'png' });
+      const imageId = workbook.addImage({ base64: SEAL_BASE64, extension: 'png' });
         ws.addImage(imageId, {
           tl: { col: 4.5, row: 5.5 } as any,
-          br: { col: 5.8, row: 8.5 } as any,
+        ext: { width: 120, height: 120 },
         });
       } catch (e) {
         console.warn('Seal image creation failed:', e);
@@ -494,14 +494,7 @@ export default function InvoicePage() {
 
       // Download
       const buffer = await workbook.xlsx.writeBuffer();
-          const JSZip = (await import('jszip')).default;
-              const zip = await JSZip.loadAsync(buffer);
-                  const df = zip.file('xl/drawings/drawing1.xml');
-                      if (df) { let x = await df.async('string'); x = x.replace(/cx="0" cy="0"/g, 'cx="800000" cy="800000"'); zip.file('xl/drawings/drawing1.xml', x); }
-                                  const mf = Object.keys(zip.files).filter(f => f.startsWith('xl/media/')); if (mf.length > 0) { const sb = atob(SEAL_BASE64); const sa = new Uint8Array(sb.length); for (let i = 0; i < sb.length; i++) sa[i] = sb.charCodeAt(i); zip.file(mf[0], sa); }
-                                  
-                          const fixedBuffer = await zip.generateAsync({ type: 'arraybuffer' });
-      const blob = new Blob([fixedBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

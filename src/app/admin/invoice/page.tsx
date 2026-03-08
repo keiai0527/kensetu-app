@@ -10,7 +10,7 @@ type Client = {
   address: string | null;
   day_rate: number;
   night_rate: number;
-  overtime_rate: number
+  overtime_rate: numbe
   closing_day: number;
   billing_day_start: number;
   billing_day_end: number;
@@ -483,7 +483,7 @@ export default function InvoicePage() {
 
       // Electronic seal image (positioned near company address area)
       try {
-        const imageId = workbook.addImage({ base64: SEAL_BASE64, extension: 'png' });
+        const sealBinary = atob(SEAL_BASE64); const sealBytes = new Uint8Array(sealBinary.length); for (let i = 0; i < sealBinary.length; i++) sealBytes[i] = sealBinary.charCodeAt(i); const imageId = workbook.addImage({ buffer: sealBytes.buffer, extension: 'png' });
         ws.addImage(imageId, {
           tl: { col: 14, row: 6.2 } as any,
           ext: { width: 70, height: 70 },

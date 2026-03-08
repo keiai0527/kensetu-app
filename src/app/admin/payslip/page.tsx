@@ -150,7 +150,7 @@ export default function PayslipPage() {
   .section-title { background: #333; color: #fff; text-align: center; font-weight: bold; }
   .total-row th, .total-row td { background: #fff8e1; font-weight: bold; font-size: 15px; }
   .net-row th, .net-row td { background: #e8f5e9; font-weight: bold; font-size: 18px; }
-  @media print { body { margin: 20px; } }
+  @media print { body { margin: 20px; } .no-print { display: none !important; } }
 </style></head><body>
 <h1>給 与 明 細 書</h1>
 <div class="info">
@@ -189,6 +189,10 @@ export default function PayslipPage() {
 
 <div style="text-align:center;margin-top:30px;font-size:11px;color:#999;">
   株式会社敬愛興業 ｜ Cham勤怠管理システム
+</div>
+<div class="no-print" style="text-align:center;margin:30px 0;">
+  <button onclick="window.print()" style="padding:10px 30px;font-size:16px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:0 10px;">印刷 / PDF保存</button>
+  <button onclick="window.close()" style="padding:10px 30px;font-size:16px;background:#666;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:0 10px;">閉じる</button>
 </div>
 </body></html>`;
 

@@ -84,7 +84,7 @@ export default function InvoicePage() {
   }
 
   async function handlePreview() {
-    if (!selectedClientId) { alert('Ã¥ÂÂÃ¥Â¼ÂÃ¥ÂÂÃ£ÂÂÃ©ÂÂ¸Ã¦ÂÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂ'); return; }
+    if (!selectedClientId) { alert('取引先を選択してください'); return; }
     const client = clients.find(c => c.id === selectedClientId);
     if (!client) return;
 
@@ -102,7 +102,7 @@ export default function InvoicePage() {
       .order('date');
 
     if (error) {
-      alert('Ã£ÂÂÃ£ÂÂ¼Ã£ÂÂ¿Ã¥ÂÂÃ¥Â¾ÂÃ£ÂÂ¨Ã£ÂÂ©Ã£ÂÂ¼: ' + error.message);
+      alert('データ取得エラー: ' + error.message);
       setPreviewing(false);
       return;
     }
@@ -112,7 +112,7 @@ export default function InvoicePage() {
     let tDays = 0, tNights = 0, tOT = 0;
 
     for (const r of recs) {
-      const workerName = r.employees?.name || 'Ã¤Â¸ÂÃ¦ÂÂ';
+      const workerName = r.employees?.name || '不明';
       const ot = r.overtime_hours || 0;
       const isNight = r.shift_type === 'night';
       const isDay = r.shift_type === 'day' || r.shift_type === 'trip_day';
@@ -123,10 +123,10 @@ export default function InvoicePage() {
         if (isNight) { existing.nightCount++; existing.nightInfo = `${existing.nightCount}`; }
         existing.overtimeHours += ot;
         if (!existing.workers.includes(workerName)) existing.workers.push(workerName);
-        if (r.job_site && !existing.sites.includes(r.job_site)) existing.sites += 'Ã£ÂÂ' + r.job_site;
+        if (r.job_site && !existing.sites.includes(r.job_site)) existing.sites += '、' + r.job_site;
       } else {
         const d = new Date(r.date + 'T00:00:00');
-        const days = ['Ã¦ÂÂ¥','Ã¦ÂÂ','Ã§ÂÂ«','Ã¦Â°Â´','Ã¦ÂÂ¨','Ã©ÂÂ','Ã¥ÂÂ'];
+        const days = ['日','月','火','水','木','金','土'];
         dayMap.set(r.date, {
           date: r.date,
           dayOfWeek: days[d.getDay()],
@@ -150,13 +150,13 @@ export default function InvoicePage() {
     setPreviewing(false);
   }
 
-  function formatYen(n: number) { return 'ÃÂ¥' + n.toLocaleString(); }
+  function formatYen(n: number) { return '¥' + n.toLocaleString(); }
   function formatDate(d: string) {
     const p = d.split('-');
     return `${parseInt(p[1])}/${parseInt(p[2])}`;
   }
 
-  // Real company seal image (Ã¦Â ÂªÃ¥Â¼ÂÃ¤Â¼ÂÃ§Â¤Â¾Ã¦ÂÂ¬Ã¦ÂÂÃ¨ÂÂÃ¦Â¥Â­ Ã§Â¯ÂÃ¦ÂÂ¸Ã¤Â½ÂÃ¨Â§ÂÃ¥ÂÂ°)
+  // Real company seal image (株式会社敬愛興業 篆書体角印)
 
   async function handleDownloadInvoice() {
     const client = clients.find(c => c.id === selectedClientId);
@@ -166,7 +166,7 @@ export default function InvoicePage() {
     try {
       const ExcelJS = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
-      const ws = workbook.addWorksheet(`${selectedMonth}Ã¦ÂÂ`, {
+      const ws = workbook.addWorksheet(`${selectedMonth}月`, {
         pageSetup: {
           paperSize: 9,
           orientation: 'portrait',
@@ -179,7 +179,7 @@ export default function InvoicePage() {
       });
 
       const { startDate, endDate } = getBillingPeriod(selectedYear, selectedMonth, client);
-      const periodStr = `${formatDate(startDate)}Ã¯Â½Â${formatDate(endDate)}`;
+      const periodStr = `${formatDate(startDate)}～${formatDate(endDate)}`;
       const dayRate = client.day_rate || 16000;
       const otRate = client.overtime_rate || 2300;
       const dayAmount = totalDays * dayRate;
@@ -213,7 +213,7 @@ export default function InvoicePage() {
       // Row 2: Title (centered across all columns)
       ws.mergeCells('A2:F2');
       const titleCell = ws.getCell('A2');
-      titleCell.value = 'Ã¥Â¾Â¡ Ã¨Â«Â Ã¦Â±Â Ã¦ÂÂ¸';
+      titleCell.value = '御 請 求 書';
       titleCell.font = { bold: true, size: 20, name: 'Yu Gothic' };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
       ws.getRow(2).height = 36;
@@ -221,9 +221,9 @@ export default function InvoicePage() {
       // Row 3: spacer
       ws.getRow(3).height = 6;
 
-      // Row 4: Ã¨Â«ÂÃ¦Â±ÂÃ¦ÂÂ¥ (right side)
+      // Row 4: 請求日 (right side)
       ws.mergeCells('E4:F4');
-      ws.getCell('E4').value = `Ã¨Â«ÂÃ¦Â±ÂÃ¦ÂÂ¥: ${selectedYear}Ã¥Â¹Â´${selectedMonth}Ã¦ÂÂ21Ã¦ÂÂ¥`;
+      ws.getCell('E4').value = `請求日: ${selectedYear}年${selectedMonth}月21日`;
       ws.getCell('E4').font = smallFont;
       ws.getCell('E4').alignment = { horizontal: 'right' };
 
@@ -233,12 +233,12 @@ export default function InvoicePage() {
       // Row 6: Client name (left) / Company name (right)
       ws.mergeCells('A6:C6');
       const clientCell = ws.getCell('A6');
-      clientCell.value = client.honorific_name || (client.name + ' Ã¥Â¾Â¡Ã¤Â¸Â­');
+      clientCell.value = client.honorific_name || (client.name + ' 御中');
       clientCell.font = { bold: true, size: 13, name: 'Yu Gothic' };
       clientCell.border = { bottom: medBorder };
 
       ws.mergeCells('E6:F6');
-      ws.getCell('E6').value = 'Ã¦Â ÂªÃ¥Â¼ÂÃ¤Â¼ÂÃ§Â¤Â¾Ã£ÂÂÃ¦ÂÂ¬Ã¦ÂÂÃ¨ÂÂÃ¦Â¥Â­';
+      ws.getCell('E6').value = '株式会社　敬愛興業';
       ws.getCell('E6').font = { bold: true, size: 11, name: 'Yu Gothic' };
       ws.getCell('E6').alignment = { horizontal: 'right' };
 
@@ -248,19 +248,19 @@ export default function InvoicePage() {
       ws.getCell('A7').font = smallFont;
 
       ws.mergeCells('E7:F7');
-      ws.getCell('E7').value = 'Ã£ÂÂ606-8117';
+      ws.getCell('E7').value = '〒606-8117';
       ws.getCell('E7').font = smallFont;
       ws.getCell('E7').alignment = { horizontal: 'right' };
 
       // Row 8: Company address
       ws.mergeCells('E8:F8');
-      ws.getCell('E8').value = 'Ã¤ÂºÂ¬Ã©ÂÂ½Ã¥Â¸ÂÃ¥Â·Â¦Ã¤ÂºÂ¬Ã¥ÂÂºÃ¤Â¸ÂÃ¤Â¹ÂÃ¥Â¯ÂºÃ©ÂÂÃ£ÂÂ®Ã¥ÂÂÃ§ÂÂº85-14';
+      ws.getCell('E8').value = '京都市左京区一乗寺里の前町85-14';
       ws.getCell('E8').font = smallFont;
       ws.getCell('E8').alignment = { horizontal: 'right' };
 
       // Row 9: TEL
       ws.mergeCells('A9:C9');
-      ws.getCell('A9').value = 'Ã¤Â¸ÂÃ¨Â¨ÂÃ£ÂÂ®Ã©ÂÂÃ£ÂÂÃ£ÂÂÃ¨Â«ÂÃ¦Â±ÂÃ§ÂÂ³Ã£ÂÂÃ¤Â¸ÂÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ';
+      ws.getCell('A9').value = '下記の通りご請求申し上げます。';
       ws.getCell('A9').font = smallFont;
 
       ws.mergeCells('E9:F9');
@@ -279,13 +279,13 @@ export default function InvoicePage() {
 
       // Row 12: Grand total box
       ws.mergeCells('A12:B12');
-      ws.getCell('A12').value = 'Ã£ÂÂÃ¨Â«ÂÃ¦Â±ÂÃ©ÂÂÃ©Â¡Â';
+      ws.getCell('A12').value = 'ご請求金額';
       ws.getCell('A12').font = { bold: true, size: 11, name: 'Yu Gothic' };
       ws.getCell('A12').alignment = { vertical: 'middle' };
 
       ws.mergeCells('C12:F12');
       ws.getCell('C12').value = grandTotal;
-      ws.getCell('C12').numFmt = 'ÃÂ¥#,##0';
+      ws.getCell('C12').numFmt = '¥#,##0';
       ws.getCell('C12').font = { bold: true, size: 16, name: 'Yu Gothic' };
       ws.getCell('C12').alignment = { horizontal: 'center', vertical: 'middle' };
       ws.getCell('C12').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
@@ -298,24 +298,24 @@ export default function InvoicePage() {
       // Row 13: spacer
       ws.getRow(13).height = 4;
 
-      // Row 14: Bank info + Ã§ÂÂ»Ã©ÂÂ²Ã§ÂÂªÃ¥ÂÂ·
+      // Row 14: Bank info + 登録番号
       ws.mergeCells('A14:B14');
-      ws.getCell('A14').value = 'Ã§ÂÂ»Ã©ÂÂ²Ã§ÂÂªÃ¥ÂÂ·: T5130001074190';
+      ws.getCell('A14').value = '登録番号: T5130001074190';
       ws.getCell('A14').font = { size: 8, name: 'Yu Gothic', color: { argb: 'FF555555' } };
 
       ws.mergeCells('D14:F14');
-      ws.getCell('D14').value = 'Ã£ÂÂÃ¦ÂÂ¯Ã¨Â¾Â¼Ã¥ÂÂ: Ã¤ÂºÂ¬Ã©ÂÂ½Ã¤Â¿Â¡Ã§ÂÂ¨Ã©ÂÂÃ¥ÂºÂ« Ã¤Â¿Â®Ã¥Â­Â¦Ã©ÂÂ¢Ã¦ÂÂ¯Ã¥ÂºÂ';
+      ws.getCell('D14').value = 'お振込先: 京都信用金庫 修学院支店';
       ws.getCell('D14').font = smallFont;
       ws.getCell('D14').alignment = { horizontal: 'right' };
 
-      // Row 15: Bank account + Ã¦ÂÂ¯Ã¨Â¾Â¼Ã¦ÂÂÃ¦ÂÂ¥
+      // Row 15: Bank account + 振込期日
       ws.mergeCells('D15:F15');
-      ws.getCell('D15').value = 'Ã¦ÂÂ®Ã©ÂÂ 3030674 Ã£ÂÂ«Ã¯Â¼ÂÃ£ÂÂ±Ã£ÂÂ¤Ã£ÂÂ¢Ã£ÂÂ¤Ã£ÂÂ³Ã£ÂÂ¦Ã£ÂÂ®Ã£ÂÂ§Ã£ÂÂ¦';
+      ws.getCell('D15').value = '普通 3030674 カ）ケイアイコウギョウ';
       ws.getCell('D15').font = smallFont;
       ws.getCell('D15').alignment = { horizontal: 'right' };
 
       ws.mergeCells('A15:B15');
-      ws.getCell('A15').value = `Ã¦ÂÂ¯Ã¨Â¾Â¼Ã¦ÂÂÃ¦ÂÂ¥: ${selectedYear}Ã¥Â¹Â´${selectedMonth}Ã¦ÂÂÃ¦ÂÂ«`;
+      ws.getCell('A15').value = `振込期日: ${selectedYear}年${selectedMonth}月末`;
       ws.getCell('A15').font = boldFont;
 
       // Row 16: spacer
@@ -324,12 +324,12 @@ export default function InvoicePage() {
       // Row 17: Table header
       const headerRow = 17;
       const headers = [
-        { col: 'A', val: 'Ã¦ÂÂ¥Ã¤Â»Â' },
-        { col: 'B', val: 'Ã¥ÂÂÃ¥ÂÂÃ£ÂÂ»Ã¦ÂÂÃ¨Â¦Â' },
-        { col: 'C', val: 'Ã¦ÂÂ°Ã©ÂÂ' },
-        { col: 'D', val: 'Ã¥ÂÂÃ¤Â½Â' },
-        { col: 'E', val: 'Ã¥ÂÂÃ¤Â¾Â¡' },
-        { col: 'F', val: 'Ã©ÂÂÃ©Â¡Â' },
+        { col: 'A', val: '日付' },
+        { col: 'B', val: '品名・摘要' },
+        { col: 'C', val: '数量' },
+        { col: 'D', val: '単位' },
+        { col: 'E', val: '単価' },
+        { col: 'F', val: '金額' },
       ];
       for (const h of headers) {
         const cell = ws.getCell(`${h.col}${headerRow}`);
@@ -346,12 +346,12 @@ export default function InvoicePage() {
       // Data rows
       let dataRow = 18;
       const lineItems: { name: string; qty: number; unit: string; price: number; amount: number }[] = [];
-      lineItems.push({ name: 'Ã¨Â§Â£Ã¤Â½ÂÃ¤Â½ÂÃ¦Â¥Â­Ã¤Â»Â£Ã©ÂÂ', qty: totalDays, unit: 'Ã¤ÂºÂºÃ¦ÂÂ¥', price: dayRate, amount: dayAmount });
+      lineItems.push({ name: '解体作業代金', qty: totalDays, unit: '人日', price: dayRate, amount: dayAmount });
       if (totalOvertime > 0) {
-        lineItems.push({ name: 'Ã¦Â®ÂÃ¦Â¥Â­Ã¤Â»Â£', qty: totalOvertime, unit: 'Ã¦ÂÂÃ©ÂÂ', price: otRate, amount: otAmount });
+        lineItems.push({ name: '残業代', qty: totalOvertime, unit: '時間', price: otRate, amount: otAmount });
       }
       if (totalNights > 0) {
-        lineItems.push({ name: 'Ã¥Â¤ÂÃ¥ÂÂ¤Ã¤Â»Â£Ã©ÂÂ', qty: totalNights, unit: 'Ã¤ÂºÂºÃ¦ÂÂ¥', price: client.night_rate || dayRate, amount: nightAmount });
+        lineItems.push({ name: '夜勤代金', qty: totalNights, unit: '人日', price: client.night_rate || dayRate, amount: nightAmount });
       }
 
       for (const item of lineItems) {
@@ -401,12 +401,12 @@ export default function InvoicePage() {
 
       // Subtotal row
       ws.mergeCells(`A${dataRow}:D${dataRow}`);
-      ws.getCell(`A${dataRow}`).value = 'Ã¥Â°ÂÃ¨Â¨Â';
+      ws.getCell(`A${dataRow}`).value = '小計';
       ws.getCell(`A${dataRow}`).font = boldFont;
       ws.getCell(`A${dataRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
       ws.getCell(`E${dataRow}`).value = '';
       ws.getCell(`F${dataRow}`).value = subtotal;
-      ws.getCell(`F${dataRow}`).numFmt = 'ÃÂ¥#,##0';
+      ws.getCell(`F${dataRow}`).numFmt = '¥#,##0';
       ws.getCell(`F${dataRow}`).font = boldFont;
       ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
       for (const col of ['A','B','C','D','E','F']) {
@@ -424,12 +424,12 @@ export default function InvoicePage() {
 
       // Tax row
       ws.mergeCells(`A${dataRow}:D${dataRow}`);
-      ws.getCell(`A${dataRow}`).value = 'Ã¦Â¶ÂÃ¨Â²Â»Ã§Â¨Â (10%)';
+      ws.getCell(`A${dataRow}`).value = '消費税 (10%)';
       ws.getCell(`A${dataRow}`).font = boldFont;
       ws.getCell(`A${dataRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
       ws.getCell(`E${dataRow}`).value = '';
       ws.getCell(`F${dataRow}`).value = tax;
-      ws.getCell(`F${dataRow}`).numFmt = 'ÃÂ¥#,##0';
+      ws.getCell(`F${dataRow}`).numFmt = '¥#,##0';
       ws.getCell(`F${dataRow}`).font = boldFont;
       ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
       for (const col of ['A','B','C','D','E','F']) {
@@ -444,12 +444,12 @@ export default function InvoicePage() {
 
       // Grand total row
       ws.mergeCells(`A${dataRow}:D${dataRow}`);
-      ws.getCell(`A${dataRow}`).value = 'Ã¥ÂÂÃ¨Â¨Â';
+      ws.getCell(`A${dataRow}`).value = '合計';
       ws.getCell(`A${dataRow}`).font = { bold: true, size: 12, name: 'Yu Gothic' };
       ws.getCell(`A${dataRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
       ws.getCell(`E${dataRow}`).value = '';
       ws.getCell(`F${dataRow}`).value = grandTotal;
-      ws.getCell(`F${dataRow}`).numFmt = 'ÃÂ¥#,##0';
+      ws.getCell(`F${dataRow}`).numFmt = '¥#,##0';
       ws.getCell(`F${dataRow}`).font = { bold: true, size: 12, name: 'Yu Gothic' };
       ws.getCell(`F${dataRow}`).alignment = { horizontal: 'right' };
       for (const col of ['A','B','C','D','E','F']) {
@@ -470,16 +470,18 @@ export default function InvoicePage() {
       dataRow++;
 
       // Remarks
-      ws.getCell(`A${dataRow}`).value = 'Ã¥ÂÂÃ¨ÂÂ';
+      ws.getCell(`A${dataRow}`).value = '備考';
       ws.getCell(`A${dataRow}`).font = boldFont;
       dataRow++;
-      ws.getCell(`A${dataRow}`).value = `Ã¦ÂÂÃ©ÂÂ: ${periodStr}`;
+      ws.getCell(`A${dataRow}`).value = `期間: ${periodStr}`;
       ws.getCell(`A${dataRow}`).font = normalFont;
       dataRow++;
       ws.mergeCells(`A${dataRow}:F${dataRow}`);
-      ws.getCell(`A${dataRow}`).value = 'Ã£ÂÂÃ£ÂÂ®Ã¥Â£Â²Ã£ÂÂÃ¤Â¸ÂÃ£ÂÂÃ£ÂÂ®10Ã¯Â¼ÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ¥Â­ÂÃ£ÂÂ©Ã£ÂÂÃ©Â£ÂÃ¥Â ÂÃ£ÂÂ¨Ã£ÂÂ±Ã£ÂÂ¤Ã£ÂÂ¢Ã£ÂÂ¤Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ¹Ã¤Â¾Â¿Ã¯Â¼ÂÃ©ÂÂÃ¥ÂÂ¶Ã¥ÂÂ©Ã¥ÂÂ£Ã¤Â½ÂÃ¯Â¼ÂÃ£ÂÂ«Ã¥Â¯ÂÃ¤Â»ÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ';
+      ws.getCell(`A${dataRow}`).value = 'この売り上げの10％をけいあい子ども食堂とケイアイハピネス便（非営利団体）に寄付させていただきます。';
       ws.getCell(`A${dataRow}`).font = { size: 8, name: 'Yu Gothic', color: { argb: 'FF666666' } };
 
+        console.warn('Seal image creation failed:', e);
+      }
 
       // Download
       const buffer = await workbook.xlsx.writeBuffer();
@@ -487,13 +489,13 @@ export default function InvoicePage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${client.name}_Ã¨Â«ÂÃ¦Â±ÂÃ¦ÂÂ¸_${selectedYear}Ã¥Â¹Â´${selectedMonth}Ã¦ÂÂ.xlsx`;
+      a.download = `${client.name}_請求書_${selectedYear}年${selectedMonth}月.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Ã£ÂÂ¨Ã£ÂÂ©Ã£ÂÂ¼: ' + (err as Error).message);
+      alert('エラー: ' + (err as Error).message);
     }
     setGenerating(false);
   }
@@ -506,7 +508,7 @@ export default function InvoicePage() {
     try {
       const ExcelJS = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
-      const ws = workbook.addWorksheet(`Ã¥ÂÂºÃ©ÂÂ¢Ã¨Â¡Â¨_${selectedMonth}Ã¦ÂÂ`, {
+      const ws = workbook.addWorksheet(`出面表_${selectedMonth}月`, {
         pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
       });
 
@@ -533,20 +535,20 @@ export default function InvoicePage() {
 
       // Title
       ws.mergeCells('A1:K1');
-      ws.getCell('A1').value = 'Ã¥ÂÂº Ã©ÂÂ¢ Ã¨Â¡Â¨';
+      ws.getCell('A1').value = '出 面 表';
       ws.getCell('A1').font = { bold: true, size: 18, name: 'Yu Gothic' };
       ws.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
       ws.getRow(1).height = 32;
 
       // Subtitle
       ws.mergeCells('A2:C2');
-      ws.getCell('A2').value = `${selectedYear}Ã¥Â¹Â´${selectedMonth}Ã¦ÂÂÃ¥ÂÂÃ£ÂÂ${client.name}`;
+      ws.getCell('A2').value = `${selectedYear}年${selectedMonth}月分　${client.name}`;
       ws.getCell('A2').font = { bold: true, size: 12, name: 'Yu Gothic' };
       ws.getRow(2).height = 24;
 
       // Header row
       const hdrRow = 3;
-      const hdrLabels = ['Ã¦ÂÂ¥Ã¤Â»Â','Ã¦ÂÂÃ¦ÂÂ¥','Ã§ÂÂ¾Ã¥Â Â´','Ã¦ÂÂ¥Ã¥ÂÂ¤','Ã¥Â¤ÂÃ¥ÂÂ¤','Ã¦Â®ÂÃ¦Â¥Â­','Ã¦ÂÂ©Ã¥ÂÂº','Ã¥ÂÂÃ¥Â·Â¥','Ã¨Â§Â£Ã¤Â½ÂÃ¥Â·Â¥','Ã©ÂÂÃ¨Â¿Â','Ã¥ÂÂÃ¨ÂÂ'];
+      const hdrLabels = ['日付','曜日','現場','日勤','夜勤','残業','早出','土工','解体工','送迎','備考'];
       for (let i = 0; i < hdrLabels.length; i++) {
         const col = String.fromCharCode(65 + i);
         const cell = ws.getCell(`${col}${hdrRow}`);
@@ -574,7 +576,7 @@ export default function InvoicePage() {
           day.nightCount || null,
           day.overtimeHours || null,
           null, null, null, null,
-          day.workers.join('Ã£ÂÂ'),
+          day.workers.join('、'),
         ];
         for (let i = 0; i < vals.length; i++) {
           const col = String.fromCharCode(65 + i);
@@ -590,16 +592,16 @@ export default function InvoicePage() {
           };
         }
         // Saturday/Sunday coloring
-        if (day.dayOfWeek === 'Ã¥ÂÂ') {
+        if (day.dayOfWeek === '土') {
           ws.getCell(`B${row}`).font = { ...normalFont, color: { argb: 'FF0066CC' } };
-        } else if (day.dayOfWeek === 'Ã¦ÂÂ¥') {
+        } else if (day.dayOfWeek === '日') {
           ws.getCell(`B${row}`).font = { ...normalFont, color: { argb: 'FFCC0000' } };
         }
         row++;
       }
 
       // Total row
-      const totalLabels = ['', '', 'Ã¥ÂÂÃ¨Â¨Â', totalDays, totalNights || null, totalOvertime || null, null, null, null, null, ''];
+      const totalLabels = ['', '', '合計', totalDays, totalNights || null, totalOvertime || null, null, null, null, null, ''];
       for (let i = 0; i < totalLabels.length; i++) {
         const col = String.fromCharCode(65 + i);
         const cell = ws.getCell(`${col}${row}`);
@@ -622,13 +624,13 @@ export default function InvoicePage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${client.name}_Ã¥ÂÂºÃ©ÂÂ¢Ã¨Â¡Â¨_${selectedYear}Ã¥Â¹Â´${selectedMonth}Ã¦ÂÂ.xlsx`;
+      a.download = `${client.name}_出面表_${selectedYear}年${selectedMonth}月.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Ã£ÂÂ¨Ã£ÂÂ©Ã£ÂÂ¼: ' + (err as Error).message);
+      alert('エラー: ' + (err as Error).message);
     }
     setGenerating(false);
   }
@@ -636,7 +638,7 @@ export default function InvoicePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-500">Ã¨ÂªÂ­Ã£ÂÂ¿Ã¨Â¾Â¼Ã£ÂÂ¿Ã¤Â¸Â­...</div>
+        <div className="text-gray-500">読み込み中...</div>
       </div>
     );
   }
@@ -647,49 +649,49 @@ export default function InvoicePage() {
     <div className="min-h-screen bg-gray-100">
       <header className="bg-gray-800 text-white p-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-bold">Ã¨Â«ÂÃ¦Â±ÂÃ¦ÂÂ¸Ã£ÂÂ»Ã¥ÂÂºÃ©ÂÂ¢Ã¨Â¡Â¨</h1>
-          <a href="/admin" className="text-gray-300 hover:text-white text-sm">Ã¢ÂÂ Ã§Â®Â¡Ã§ÂÂÃ§ÂÂ»Ã©ÂÂ¢</a>
+          <h1 className="text-lg font-bold">請求書・出面表</h1>
+          <a href="/admin" className="text-gray-300 hover:text-white text-sm">← 管理画面</a>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-4">
-        {/* Ã©ÂÂ¸Ã¦ÂÂÃ£ÂÂ¨Ã£ÂÂªÃ£ÂÂ¢ */}
+        {/* 選択エリア */}
         <div className="bg-white rounded-xl shadow p-5 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Ã¥ÂÂÃ¥Â¼ÂÃ¥ÂÂ</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">取引先</label>
               <select
                 value={selectedClientId}
                 onChange={e => { setSelectedClientId(e.target.value); setHasFetched(false); setDailySummary([]); }}
                 className="w-full border rounded-lg px-3 py-2"
               >
-                <option value="">Ã©ÂÂ¸Ã¦ÂÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂ</option>
+                <option value="">選択してください</option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Ã¥Â¹Â´</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">年</label>
               <select
                 value={selectedYear}
                 onChange={e => { setSelectedYear(Number(e.target.value)); setHasFetched(false); setDailySummary([]); }}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 {[2025, 2026, 2027].map(y => (
-                  <option key={y} value={y}>{y}Ã¥Â¹Â´</option>
+                  <option key={y} value={y}>{y}年</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Ã¦ÂÂ</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">月</label>
               <select
                 value={selectedMonth}
                 onChange={e => { setSelectedMonth(Number(e.target.value)); setHasFetched(false); setDailySummary([]); }}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                  <option key={m} value={m}>{m}Ã¦ÂÂ</option>
+                  <option key={m} value={m}>{m}月</option>
                 ))}
               </select>
             </div>
@@ -700,45 +702,45 @@ export default function InvoicePage() {
               disabled={!selectedClientId || previewing}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
             >
-              {previewing ? 'Ã©ÂÂÃ¨Â¨ÂÃ¤Â¸Â­...' : 'Ã©ÂÂÃ¨Â¨ÂÃ£ÂÂ»Ã£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ¥Ã£ÂÂ¼'}
+              {previewing ? '集計中...' : '集計・プレビュー'}
             </button>
           </div>
         </div>
 
-        {/* Ã£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ¥Ã£ÂÂ¼Ã¨Â¡Â¨Ã§Â¤Âº */}
+        {/* プレビュー表示 */}
         {dailySummary.length > 0 && client && (
           <>
-            {/* Ã¨Â«ÂÃ¦Â±ÂÃ£ÂÂµÃ£ÂÂÃ£ÂÂªÃ£ÂÂ¼ */}
+            {/* 請求サマリー */}
             <div className="bg-white rounded-xl shadow p-5 mb-4">
-              <h2 className="font-bold text-lg mb-3">Ã¨Â«ÂÃ¦Â±ÂÃ£ÂÂµÃ£ÂÂÃ£ÂÂªÃ£ÂÂ¼</h2>
+              <h2 className="font-bold text-lg mb-3">請求サマリー</h2>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-gray-600">Ã¥ÂÂÃ¥Â¼ÂÃ¥ÂÂ:</div>
+                  <div className="text-gray-600">取引先:</div>
                   <div className="font-bold">{client.name}</div>
-                  <div className="text-gray-600">Ã¨Â«ÂÃ¦Â±ÂÃ¦ÂÂÃ©ÂÂ:</div>
+                  <div className="text-gray-600">請求期間:</div>
                   <div className="font-bold">
                     {(() => {
                       const { startDate, endDate } = getBillingPeriod(selectedYear, selectedMonth, client);
-                      return `${formatDate(startDate)} Ã¯Â½Â ${formatDate(endDate)}`;
+                      return `${formatDate(startDate)} ～ ${formatDate(endDate)}`;
                     })()}
                   </div>
-                  <div className="text-gray-600">Ã¨Â§Â£Ã¤Â½ÂÃ¤Â½ÂÃ¦Â¥Â­Ã¤Â»Â£Ã©ÂÂ:</div>
+                  <div className="text-gray-600">解体作業代金:</div>
                   <div className="font-bold">
-                    {totalDays}Ã¤ÂºÂºÃ¦ÂÂ¥ ÃÂ {formatYen(client.day_rate)} = {formatYen(totalDays * client.day_rate)}
+                    {totalDays}人日 × {formatYen(client.day_rate)} = {formatYen(totalDays * client.day_rate)}
                   </div>
                   {totalNights > 0 && (
                     <>
-                      <div className="text-gray-600">Ã¥Â¤ÂÃ¥ÂÂ¤Ã¤Â»Â£Ã©ÂÂ:</div>
+                      <div className="text-gray-600">夜勤代金:</div>
                       <div className="font-bold">
-                        {totalNights}Ã¤ÂºÂºÃ¦ÂÂ¥ ÃÂ {formatYen(client.night_rate)} = {formatYen(totalNights * client.night_rate)}
+                        {totalNights}人日 × {formatYen(client.night_rate)} = {formatYen(totalNights * client.night_rate)}
                       </div>
                     </>
                   )}
                   {totalOvertime > 0 && (
                     <>
-                      <div className="text-gray-600">Ã¦Â®ÂÃ¦Â¥Â­Ã¤Â»Â£:</div>
+                      <div className="text-gray-600">残業代:</div>
                       <div className="font-bold">
-                        {totalOvertime}h ÃÂ {formatYen(client.overtime_rate || 2300)} = {formatYen(totalOvertime * (client.overtime_rate || 2300))}
+                        {totalOvertime}h × {formatYen(client.overtime_rate || 2300)} = {formatYen(totalOvertime * (client.overtime_rate || 2300))}
                       </div>
                     </>
                   )}
@@ -752,14 +754,14 @@ export default function InvoicePage() {
                   return (
                     <>
                       <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                        <div className="text-gray-600">Ã¥Â°ÂÃ¨Â¨Â:</div>
+                        <div className="text-gray-600">小計:</div>
                         <div className="font-bold">{formatYen(sub)}</div>
-                        <div className="text-gray-600">Ã¦Â¶ÂÃ¨Â²Â»Ã§Â¨Â (10%):</div>
+                        <div className="text-gray-600">消費税 (10%):</div>
                         <div className="font-bold">{formatYen(t)}</div>
                       </div>
                       <div className="border-t mt-3 pt-3">
                         <div className="flex justify-between items-center">
-                          <span className="font-bold text-lg">Ã¨Â«ÂÃ¦Â±ÂÃ©ÂÂÃ©Â¡ÂÃ¥ÂÂÃ¨Â¨Â</span>
+                          <span className="font-bold text-lg">請求金額合計</span>
                           <span className="font-bold text-2xl text-green-700">{formatYen(sub + t)}</span>
                         </div>
                       </div>
@@ -769,19 +771,19 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            {/* Ã¥ÂÂºÃ©ÂÂ¢Ã¨Â¡Â¨Ã£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ¥Ã£ÂÂ¼ */}
+            {/* 出面表プレビュー */}
             <div className="bg-white rounded-xl shadow p-5 mb-4 overflow-x-auto">
-              <h2 className="font-bold text-lg mb-3">Ã¥ÂÂºÃ©ÂÂ¢Ã¨Â¡Â¨Ã£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ¥Ã£ÂÂ¼</h2>
+              <h2 className="font-bold text-lg mb-3">出面表プレビュー</h2>
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border px-2 py-1 text-left">Ã¦ÂÂ¥Ã¤Â»Â</th>
-                    <th className="border px-2 py-1">Ã¦ÂÂ</th>
-                    <th className="border px-2 py-1 text-left">Ã§ÂÂ¾Ã¥Â Â´</th>
-                    <th className="border px-2 py-1">Ã¦ÂÂ¥Ã¥ÂÂ¤</th>
-                    <th className="border px-2 py-1">Ã¥Â¤ÂÃ¥ÂÂ¤</th>
-                    <th className="border px-2 py-1">Ã¦Â®ÂÃ¦Â¥Â­</th>
-                    <th className="border px-2 py-1 text-left">Ã¤Â½ÂÃ¦Â¥Â­Ã¥ÂÂ¡</th>
+                    <th className="border px-2 py-1 text-left">日付</th>
+                    <th className="border px-2 py-1">曜</th>
+                    <th className="border px-2 py-1 text-left">現場</th>
+                    <th className="border px-2 py-1">日勤</th>
+                    <th className="border px-2 py-1">夜勤</th>
+                    <th className="border px-2 py-1">残業</th>
+                    <th className="border px-2 py-1 text-left">作業員</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -793,11 +795,11 @@ export default function InvoicePage() {
                       <td className="border px-2 py-1 text-center">{day.dayCount || ''}</td>
                       <td className="border px-2 py-1 text-center">{day.nightCount || ''}</td>
                       <td className="border px-2 py-1 text-center">{day.overtimeHours || ''}</td>
-                      <td className="border px-2 py-1">{day.workers.join('Ã£ÂÂ')}</td>
+                      <td className="border px-2 py-1">{day.workers.join('、')}</td>
                     </tr>
                   ))}
                   <tr className="bg-gray-100 font-bold">
-                    <td className="border px-2 py-1" colSpan={3}>Ã¥ÂÂÃ¨Â¨Â</td>
+                    <td className="border px-2 py-1" colSpan={3}>合計</td>
                     <td className="border px-2 py-1 text-center">{totalDays}</td>
                     <td className="border px-2 py-1 text-center">{totalNights || ''}</td>
                     <td className="border px-2 py-1 text-center">{totalOvertime || ''}</td>
@@ -807,21 +809,21 @@ export default function InvoicePage() {
               </table>
             </div>
 
-            {/* Ã£ÂÂÃ£ÂÂ¦Ã£ÂÂ³Ã£ÂÂ­Ã£ÂÂ¼Ã£ÂÂÃ£ÂÂÃ£ÂÂ¿Ã£ÂÂ³ */}
+            {/* ダウンロードボタン */}
             <div className="flex gap-4 mb-8">
               <button
                 onClick={handleDownloadInvoice}
                 disabled={generating}
                 className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-50 shadow"
               >
-                {generating ? 'Ã§ÂÂÃ¦ÂÂÃ¤Â¸Â­...' : 'Ã¨Â«ÂÃ¦Â±ÂÃ¦ÂÂ¸Ã£ÂÂÃ£ÂÂ¦Ã£ÂÂ³Ã£ÂÂ­Ã£ÂÂ¼Ã£ÂÂ'}
+                {generating ? '生成中...' : '請求書ダウンロード'}
               </button>
               <button
                 onClick={handleDownloadDemenpyo}
                 disabled={generating}
                 className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-bold text-lg hover:bg-orange-600 disabled:opacity-50 shadow"
               >
-                {generating ? 'Ã§ÂÂÃ¦ÂÂÃ¤Â¸Â­...' : 'Ã¥ÂÂºÃ©ÂÂ¢Ã¨Â¡Â¨Ã£ÂÂÃ£ÂÂ¦Ã£ÂÂ³Ã£ÂÂ­Ã£ÂÂ¼Ã£ÂÂ'}
+                {generating ? '生成中...' : '出面表ダウンロード'}
               </button>
             </div>
           </>
@@ -829,20 +831,20 @@ export default function InvoicePage() {
 
         {hasFetched && dailySummary.length === 0 && !previewing && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 text-sm text-yellow-800">
-            <p className="font-bold mb-2">Ã¨Â©Â²Ã¥Â½ÂÃ£ÂÂÃ£ÂÂ¼Ã£ÂÂ¿Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ</p>
-            <p>Ã¨ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ¥ÂÂÃ¥ÂÂ :</p>
+            <p className="font-bold mb-2">該当データがありません</p>
+            <p>考えられる原因:</p>
             <ul className="list-disc ml-5 mt-1 space-y-1">
-              <li>Ã¥ÂÂºÃ¥ÂÂ¤Ã¨Â¨ÂÃ©ÂÂ²Ã£ÂÂ«Ã¥ÂÂÃ¥Â¼ÂÃ¥ÂÂÃ¯Â¼Âclient_idÃ¯Â¼ÂÃ£ÂÂÃ§Â´ÂÃ£ÂÂ¥Ã£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂªÃ£ÂÂ</li>
-              <li>Ã©ÂÂ¸Ã¦ÂÂÃ£ÂÂÃ£ÂÂÃ¦ÂÂÃ©ÂÂÃ£ÂÂ«Ã¥ÂÂºÃ¥ÂÂ¤Ã£ÂÂÃ£ÂÂ¼Ã£ÂÂ¿Ã£ÂÂÃ£ÂÂªÃ£ÂÂ</li>
-              <li>Ã¥ÂÂºÃ¥ÂÂ¤Ã¨Â¨ÂÃ©ÂÂ²Ã£ÂÂÃ¤Â¼ÂÃ¦ÂÂ¥Ã¯Â¼Âis_holidayÃ¯Â¼ÂÃ£ÂÂ«Ã¨Â¨Â­Ã¥Â®ÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂ</li>
+              <li>出勤記録に取引先（client_id）が紐づいていない</li>
+              <li>選択した期間に出勤データがない</li>
+              <li>出勤記録が休日（is_holiday）に設定されている</li>
             </ul>
-            <p className="mt-2">Ã¥ÂÂºÃ¥ÂÂ¤Ã¨Â¨ÂÃ©ÂÂ²Ã§ÂÂ»Ã©ÂÂ¢Ã£ÂÂ§Ã¥ÂÂÃ¨Â¨ÂÃ©ÂÂ²Ã£ÂÂ«Ã¥ÂÂÃ¥Â¼ÂÃ¥ÂÂÃ£ÂÂÃ¨Â¨Â­Ã¥Â®ÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂÃ£ÂÂ</p>
+            <p className="mt-2">出勤記録画面で各記録に取引先を設定してください。</p>
           </div>
         )}
 
         {!selectedClientId && (
           <div className="bg-white rounded-xl shadow p-8 text-center text-gray-400">
-            Ã¥ÂÂÃ¥Â¼ÂÃ¥ÂÂÃ£ÂÂ¨Ã¦ÂÂÃ£ÂÂÃ©ÂÂ¸Ã¦ÂÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ©ÂÂÃ¨Â¨ÂÃ£ÂÂ»Ã£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ¥Ã£ÂÂ¼Ã£ÂÂÃ£ÂÂÃ¦ÂÂ¼Ã£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂ
+            取引先と月を選択して「集計・プレビュー」を押してください
           </div>
         )}
       </main>

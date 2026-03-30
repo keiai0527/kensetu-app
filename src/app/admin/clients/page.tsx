@@ -8,7 +8,6 @@ type Client = {
   name: string;
   honorific_name: string | null;
   address: string | null;
-  contact_person: string | null;
   day_rate: number;
   overtime_rate: number;
   billing_day_start: number;
@@ -25,7 +24,6 @@ export default function ClientsPage() {
     name: '',
     honorific_name: '',
     address: '',
-    contact_person: '',
     day_rate: '16000',
     overtime_rate: '2300',
     billing_day_start: '21',
@@ -52,7 +50,7 @@ export default function ClientsPage() {
   function handleNew() {
     setEditId(null);
     setForm({
-      name: '', honorific_name: '', address: '', contact_person: '',
+      name: '', honorific_name: '', address: '',
       day_rate: '16000', overtime_rate: '2300',
       billing_day_start: '21', billing_day_end: '20',
     });
@@ -65,7 +63,6 @@ export default function ClientsPage() {
       name: c.name || '',
       honorific_name: c.honorific_name || '',
       address: c.address || '',
-      contact_person: c.contact_person || '',
       day_rate: String(c.day_rate),
       overtime_rate: String(c.overtime_rate),
       billing_day_start: String(c.billing_day_start),
@@ -79,7 +76,6 @@ export default function ClientsPage() {
       name: form.name,
       honorific_name: form.honorific_name || form.name + ' 御中',
       address: form.address || null,
-      contact_person: form.contact_person || null,
       day_rate: parseInt(form.day_rate) || 16000,
       overtime_rate: parseInt(form.overtime_rate) || 2300,
       billing_day_start: parseInt(form.billing_day_start) || 21,
@@ -153,7 +149,6 @@ export default function ClientsPage() {
                 <div className="flex-1">
                   <div className="font-bold text-gray-800 text-lg">{c.name}</div>
                   {c.address && <div className="text-sm text-gray-500 mt-1">{c.address}</div>}
-                  {c.contact_person && <div className="text-sm text-gray-500">担当: {c.contact_person}</div>}
                   <div className="flex gap-4 mt-2">
                     <span className="text-sm bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
                       日当 {formatYen(c.day_rate)}
@@ -226,14 +221,6 @@ export default function ClientsPage() {
                     onChange={e => setForm({...form, address: e.target.value})}
                     className="w-full border rounded-lg px-3 py-2"
                     placeholder="京都市南区..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">担当者</label>
-                  <input
-                    type="text" value={form.contact_person}
-                    onChange={e => setForm({...form, contact_person: e.target.value})}
-                    className="w-full border rounded-lg px-3 py-2"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">

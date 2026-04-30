@@ -73,11 +73,14 @@ export default function InvoicePage() {
   }
 
   function getBillingPeriod(year: number, month: number, client: Client) {
-    const startDay = client.billing_day_start || 21;
-    const endDay = client.billing_day_end || 20;
+    const lastDayOfMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
+    const rawStartDay = client.billing_day_start || 21;
+    const rawEndDay = client.billing_day_end || 20;
     let startYear = year;
     let startMonth = month - 1;
     if (startMonth < 1) { startMonth = 12; startYear--; }
+    const startDay = Math.min(rawStartDay, lastDayOfMonth(startYear, startMonth));
+    const endDay = Math.min(rawEndDay, lastDayOfMonth(year, month));
     const startDate = `${startYear}-${String(startMonth).padStart(2,'0')}-${String(startDay).padStart(2,'0')}`;
     const endDate = `${year}-${String(month).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`;
     return { startDate, endDate };

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function AdminLoginPage() {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,28 +14,36 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const { data, error: dbError } = await supabase
+    const looksLikeEmail = identifier.includes('@');
+
+    if (looksLikeEmail) {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: identifier.trim(),
+        password,
+      });
+      if (!authError && data.session) {
+        sessionStorage.setItem('admin_logged_in', 'true');
+        sessionStorage.setItem('admin_username', data.user?.email ?? identifier);
+        window.location.href = '/admin';
+        return;
+      }
+    }
+
+    const { data: row, error: dbError } = await supabase
       .from('admin_users')
       .select('id, username, password_hash')
-      .eq('username', username)
+      .eq('username', identifier)
       .single();
 
     setLoading(false);
 
-    if (dbError || !data) {
-      setError('ユーザー名またはパスワードが間違っています');
+    if (dbError || !row || row.password_hash !== password) {
+      setError('ユーザー名（またはメール）かパスワードが間違っています');
       return;
     }
 
-    // シンプルなパスワード照合（MVP段階）
-    if (data.password_hash !== password) {
-      setError('ユーザー名またはパスワードが間違っています');
-      return;
-    }
-
-    // ログイン成功
     sessionStorage.setItem('admin_logged_in', 'true');
-    sessionStorage.setItem('admin_username', data.username);
+    sessionStorage.setItem('admin_username', row.username);
     window.location.href = '/admin';
   }
 
@@ -54,11 +62,14 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">ユーザー名</label>
+            <label className="block text-sm font-bold text-gray-700 mb-1">
+              メールアドレス または ユーザー名
+            </label>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
               className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
               required
             />
@@ -69,6 +80,7 @@ export default function AdminLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
               required
             />
@@ -81,6 +93,15 @@ export default function AdminLoginPage() {
             {loading ? 'ログイン中...' : 'ログイン'}
           </button>
         </form>
+
+        <div className="mt-4 text-center">
+          <a
+            href="/admin/forgot-password"
+            className="text-sm text-blue-600 hover:text-blue-800 underline"
+          >
+            パスワードをお忘れですか？
+          </a>
+        </div>
 
         <div className="mt-6 text-center">
           <a href="/" className="text-gray-500 text-sm hover:text-gray-700">← トップに戻る</a>

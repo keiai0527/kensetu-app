@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { AlertTriangle } from 'lucide-react';
+
+const UNFILLED_DAYS = 3;
 
 type ClientSummary = {
   clientName: string;
@@ -25,11 +28,20 @@ type EmployeeSummary = {
   overtimeHours: number;
 };
 
+type UnfilledEmployee = {
+  id: string;
+  name: string;
+  name_vi: string | null;
+  lastDate: string | null;
+};
+
 export default function MonthlyPage() {
   const [month, setMonth] = useState('');
   const [clientSummaries, setClientSummaries] = useState<ClientSummary[]>([]);
   const [employeeSummaries, setEmployeeSummaries] = useState<EmployeeSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [unfilled, setUnfilled] = useState<UnfilledEmployee[]>([]);
+  const [unfilledLoading, setUnfilledLoading] = useState(true);
 
   useEffect(() => {
     if (sessionStorage.getItem('admin_logged_in') !== 'true') {
@@ -40,7 +52,47 @@ export default function MonthlyPage() {
     const m = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     setMonth(m);
     fetchSummary(m);
+    fetchUnfilled();
   }, []);
+
+  async function fetchUnfilled() {
+    setUnfilledLoading(true);
+    const since = new Date();
+    since.setDate(since.getDate() - UNFILLED_DAYS);
+    const sinceStr = since.toISOString().slice(0, 10);
+
+    const [empRes, attRes] = await Promise.all([
+      supabase
+        .from('employees')
+        .select('id, name, name_vi')
+        .eq('is_active', true)
+        .order('display_order'),
+      supabase
+        .from('attendance')
+        .select('employee_id, date')
+        .gte('date', sinceStr),
+    ]);
+
+    if (!empRes.data) { setUnfilledLoading(false); return; }
+
+    const lastByEmployee = new Map<string, string>();
+    (attRes.data ?? []).forEach((a: { employee_id: string; date: string }) => {
+      const prev = lastByEmployee.get(a.employee_id);
+      if (!prev || a.date > prev) lastByEmployee.set(a.employee_id, a.date);
+    });
+
+    const list: UnfilledEmployee[] = empRes.data
+      .filter((e: { id: string }) => !lastByEmployee.has(e.id))
+      .map((e: { id: string; name: string; name_vi: string | null }) => ({
+        id: e.id,
+        name: e.name,
+        name_vi: e.name_vi,
+        lastDate: null,
+      }));
+
+    setUnfilled(list);
+    setUnfilledLoading(false);
+  }
 
   async function fetchSummary(monthStr: string) {
     setLoading(true);
@@ -114,6 +166,45 @@ export default function MonthlyPage() {
       </header>
 
       <main className="max-w-5xl mx-auto p-4">
+        {/* 未入力者アラート */}
+        {!unfilledLoading && (
+          unfilled.length > 0 ? (
+            <div className="mb-4 rounded-xl border-l-4 border-orange-500 bg-orange-50 p-4 shadow">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-orange-500" strokeWidth={2} />
+                <div className="flex-1">
+                  <div className="font-bold text-orange-900">
+                    過去{UNFILLED_DAYS}日間 入力なしの作業員が {unfilled.length}名 います
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {unfilled.map(u => (
+                      <span
+                        key={u.id}
+                        className="rounded-full bg-white px-3 py-1 text-sm font-bold text-orange-700 border border-orange-200"
+                      >
+                        {u.name}
+                        {u.name_vi ? <span className="ml-1 text-xs text-orange-400">{u.name_vi}</span> : null}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-orange-700">
+                    ※ 入力漏れの可能性があります。作業員に確認してください
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-4 rounded-xl border-l-4 border-green-500 bg-green-50 p-3 shadow">
+              <div className="flex items-center gap-3">
+                <img src="/icons/icon-success.png" alt="" className="h-7 w-7 shrink-0 object-contain" />
+                <div className="text-sm font-bold text-green-800">
+                  過去{UNFILLED_DAYS}日間、全員入力済みです
+                </div>
+              </div>
+            </div>
+          )
+        )}
+
         <div className="bg-white rounded-xl shadow p-4 mb-4 flex items-center gap-4">
           <input type="month" value={month} onChange={(e) => { setMonth(e.target.value); fetchSummary(e.target.value); }}
             className="p-3 border-2 rounded-lg text-lg" />

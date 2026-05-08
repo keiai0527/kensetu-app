@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Pencil } from 'lucide-react';
 
 type Client = {
   id: string;
@@ -179,7 +180,9 @@ export default function HistoryPage() {
         {showEditSuccess && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
             <div className="bg-white rounded-3xl p-10 mx-4 text-center shadow-2xl max-w-xs w-full">
-              <div className="text-7xl mb-5">✅</div>
+              <div className="mb-5 flex justify-center">
+                <img src="/icons/icon-success.png" alt="" className="h-28 w-28 object-contain" />
+              </div>
               <h2 className="text-2xl font-bold text-green-600 mb-2">修正しました！</h2>
               <p className="text-sm text-gray-400">Đã cập nhật!</p>
             </div>
@@ -242,7 +245,7 @@ export default function HistoryPage() {
                         {SHIFT_LABELS[record.shift_type]}
                       </span>
                     )}
-                    <span className="text-blue-400 text-sm">✏️</span>
+                    <Pencil className="h-4 w-4 text-blue-400" strokeWidth={2} aria-label="編集" />
                   </div>
                 </div>
                 {!record.is_holiday && (

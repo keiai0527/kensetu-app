@@ -25,6 +25,7 @@ export default function AttendancePage() {
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [siteSuggestions, setSiteSuggestions] = useState<string[]>([]);
 
   useEffect(() => {
     const id = sessionStorage.getItem('employee_id');
@@ -55,19 +56,74 @@ export default function AttendancePage() {
     if (data) setClients(data);
   }
 
-  function handleClientChange(id: string) {
+  async function handleClientChange(id: string) {
     setClientId(id);
     const client = clients.find(c => c.id === id) || null;
     setSelectedClient(client);
     // 取引先が変わったら勤務タイプをリセット
     setShiftType('day');
+    // 過去90日のこの取引先の現場名候補を取得（表記ゆれ防止）
+    setSiteSuggestions([]);
+    if (id) {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const fromDate = ninetyDaysAgo.toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from('attendance')
+        .select('site_name')
+        .eq('client_id', id)
+        .gte('date', fromDate)
+        .not('site_name', 'is', null)
+        .neq('site_name', '');
+      if (data) {
+        const uniq = Array.from(
+          new Set(
+            data
+              .map((r: { site_name: string | null }) => (r.site_name ?? '').trim())
+              .filter(Boolean)
+          )
+        ).sort();
+        setSiteSuggestions(uniq);
+      }
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!clientId && !date) return;
 
+    // 日付バリデーション: 未来の日付は登録不可
+    const selectedDate = new Date(date);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    if (selectedDate > todayEnd) {
+      alert('未来の日付は登録できません / Không thể đăng ký ngày trong tương lai');
+      return;
+    }
+    // 90日以上前の日付は警告
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    if (selectedDate < ninetyDaysAgo) {
+      if (!confirm('90日以上前の日付です。登録しますか？\nNgày này đã hơn 90 ngày trước. Bạn có muốn đăng ký không?')) {
+        return;
+      }
+    }
+
     setSubmitting(true);
+
+    // 二重登録チェック: 同じ従業員・同じ日付の記録があるか確認
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('employee_id', employeeId)
+      .eq('date', date)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      setSubmitting(false);
+      alert('この日付はすでに登録されています。履歴画面から編集してください。\nNgày này đã được đăng ký. Vui lòng chỉnh sửa từ màn hình lịch sử.');
+      return;
+    }
 
     const { error } = await supabase.from('attendance').insert({
       employee_id: employeeId,
@@ -112,7 +168,9 @@ export default function AttendancePage() {
         {showSuccess && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
             <div className="bg-white rounded-3xl p-10 mx-4 text-center shadow-2xl max-w-xs w-full">
-              <div className="text-7xl mb-5">✅</div>
+              <div className="mb-5 flex justify-center">
+                <img src="/icons/icon-success.png" alt="" className="h-28 w-28 object-contain" />
+              </div>
               <h2 className="text-2xl font-bold text-green-600 mb-2">登録しました！</h2>
               <p className="text-xl font-semibold text-gray-700 mb-3">お疲れ様でした！</p>
               <p className="text-sm text-gray-400">Đã đăng ký! Cảm ơn bạn!</p>
@@ -180,8 +238,21 @@ export default function AttendancePage() {
                   value={siteName}
                   onChange={(e) => setSiteName(e.target.value)}
                   placeholder="例: 渋谷マンション新築工事"
+                  list="site-suggestions"
                   className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                 />
+                {siteSuggestions.length > 0 && (
+                  <datalist id="site-suggestions">
+                    {siteSuggestions.map(name => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                )}
+                {siteSuggestions.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    候補から選ぶか、新しい現場名を入力してください
+                  </p>
+                )}
               </div>
 
               {/* 勤務タイプ */}

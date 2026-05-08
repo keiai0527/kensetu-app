@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
 export default function AdminDashboard() {
@@ -48,14 +49,19 @@ export default function AdminDashboard() {
     window.location.href = '/admin/login';
   }
 
-  const menuItems = [
-    { href: '/admin/employees', label: '従業員マスター', icon: '👷', desc: '従業員の追加・編集・給与設定・控除設定' },
-    { href: '/admin/clients', label: '取引先マスター', icon: '🏢', desc: '取引先・単価の管理' },
-    { href: '/admin/attendance', label: '出勤記録', icon: '📋', desc: '全従業員の出勤確認・修正' },
-    { href: '/admin/monthly', label: '月次集計', icon: '📊', desc: '人工集計・売上集計' },
-    { href: '/admin/payroll', label: '給与計算', icon: '💰', desc: '給与自動計算・控除入力・手修正' },
-    { href: '/admin/payslip', label: '給与明細', icon: '📄', desc: '給与明細表示・PDF出力' },
-    { href: '/admin/invoice', label: '請求書・出面表', icon: '📑', desc: '取引先への請求書・出面表を生成' },
+  const menuItems: Array<{
+    href: string;
+    label: string;
+    iconSrc: string;
+    desc: string;
+  }> = [
+    { href: '/admin/employees', label: '従業員マスター', iconSrc: '/icons/icon-employees.png', desc: '従業員の追加・編集・給与設定・控除設定' },
+    { href: '/admin/clients', label: '取引先マスター', iconSrc: '/icons/icon-clients.png', desc: '取引先・単価の管理' },
+    { href: '/admin/attendance', label: '出勤記録', iconSrc: '/icons/icon-attendance.png', desc: '全従業員の出勤確認・修正' },
+    { href: '/admin/monthly', label: '月次集計', iconSrc: '/icons/icon-monthly.png', desc: '人工集計・売上集計' },
+    { href: '/admin/payroll', label: '給与計算', iconSrc: '/icons/icon-payroll.png', desc: '給与自動計算・控除入力・手修正' },
+    { href: '/admin/payslip', label: '給与明細', iconSrc: '/icons/icon-payslip.png', desc: '給与明細表示・PDF出力' },
+    { href: '/admin/invoice', label: '請求書・出面表', iconSrc: '/icons/icon-invoice.png', desc: '取引先への請求書・出面表を生成' },
   ];
 
   return (
@@ -94,7 +100,9 @@ export default function AdminDashboard() {
               href={item.href}
               className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition-shadow flex items-center gap-4"
             >
-              <span className="text-3xl">{item.icon}</span>
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center">
+                <Image src={item.iconSrc} alt="" width={56} height={56} className="h-14 w-14 object-contain" />
+              </span>
               <div>
                 <div className="font-bold text-gray-800">{item.label}</div>
                 <div className="text-sm text-gray-500">{item.desc}</div>

@@ -14,11 +14,12 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const looksLikeEmail = identifier.includes('@');
+    const trimmed = identifier.trim();
+    const looksLikeEmail = trimmed.includes('@');
 
     if (looksLikeEmail) {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: identifier.trim(),
+        email: trimmed.toLowerCase(),
         password,
       });
       if (!authError && data.session) {
@@ -70,6 +71,10 @@ export default function AdminLoginPage() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="email"
               className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
               required
             />

@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
 
     const redirectTo = `${window.location.origin}/admin/reset-password`;
     const { error: authError } = await supabase.auth.resetPasswordForEmail(
-      email.trim(),
+      email.trim().toLowerCase(),
       { redirectTo }
     );
 
@@ -84,6 +84,10 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="email"
               className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
               required
             />

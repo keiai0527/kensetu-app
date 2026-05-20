@@ -40,6 +40,21 @@ type DailySummary = {
   workers: string[];
 };
 
+type RateLine = {
+  rate: number;
+  qty: number;
+  isOverride: boolean;
+  workerNames: string[];
+};
+
+type RateBreakdown = {
+  dayLines: RateLine[];
+  nightLines: RateLine[];
+  otLines: RateLine[];
+};
+
+const EMPTY_BREAKDOWN: RateBreakdown = { dayLines: [], nightLines: [], otLines: [] };
+
 export default function InvoicePage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -51,6 +66,7 @@ export default function InvoicePage() {
   const [totalDays, setTotalDays] = useState(0);
   const [totalNights, setTotalNights] = useState(0);
   const [totalOvertime, setTotalOvertime] = useState(0);
+  const [breakdown, setBreakdown] = useState<RateBreakdown>(EMPTY_BREAKDOWN);
   const [previewing, setPreviewing] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
@@ -99,24 +115,48 @@ export default function InvoicePage() {
     setHasFetched(true);
     const { startDate, endDate } = getBillingPeriod(selectedYear, selectedMonth, client);
 
-    const { data, error } = await supabase
-      .from('attendance')
-      .select('*, employees(name)')
-      .eq('client_id', selectedClientId)
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .eq('is_holiday', false)
-      .order('date');
+    const [attRes, ovrRes] = await Promise.all([
+      supabase
+        .from('attendance')
+        .select('*, employees(name)')
+        .eq('client_id', selectedClientId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .eq('is_holiday', false)
+        .order('date'),
+      supabase
+        .from('client_employee_rates')
+        .select('employee_id, day_rate, overtime_rate')
+        .eq('client_id', selectedClientId),
+    ]);
 
-    if (error) {
-      alert('データ取得エラー: ' + error.message);
+    if (attRes.error) {
+      alert('データ取得エラー: ' + attRes.error.message);
       setPreviewing(false);
       return;
     }
 
-    const recs: AttendanceRecord[] = data || [];
+    const recs: AttendanceRecord[] = attRes.data || [];
+
+    // 個別単価マップ (テーブル未作成でも空配列として扱う)
+    const overrideMap = new Map<string, { day_rate: number | null; overtime_rate: number | null }>();
+    for (const o of (ovrRes.data || [])) {
+      overrideMap.set(o.employee_id, { day_rate: o.day_rate, overtime_rate: o.overtime_rate });
+    }
+
+    const defaultDay = client.day_rate || 16000;
+    const defaultNight = client.night_rate || defaultDay;
+    const defaultOt = client.overtime_rate || 2300;
+
     const dayMap = new Map<string, DailySummary>();
+    const dayRateMap = new Map<number, RateLine>();
+    const nightRateMap = new Map<number, RateLine>();
+    const otRateMap = new Map<number, RateLine>();
     let tDays = 0, tNights = 0, tOT = 0;
+
+    const pushWorker = (line: RateLine, name: string) => {
+      if (!line.workerNames.includes(name)) line.workerNames.push(name);
+    };
 
     for (const r of recs) {
       const workerName = r.employees?.name || '不明';
@@ -124,6 +164,13 @@ export default function InvoicePage() {
       const isNight = r.shift_type === 'night';
       const isDay = r.shift_type === 'day' || r.shift_type === 'trip_day';
 
+      const ovr = overrideMap.get(r.employee_id);
+      const effDayRate = ovr?.day_rate != null ? ovr.day_rate : defaultDay;
+      const dayIsOverride = ovr?.day_rate != null;
+      const effOtRate = ovr?.overtime_rate != null ? ovr.overtime_rate : defaultOt;
+      const otIsOverride = ovr?.overtime_rate != null;
+
+      // 出面表用の日次集計
       const existing = dayMap.get(r.date);
       if (existing) {
         if (isDay) existing.dayCount++;
@@ -145,15 +192,38 @@ export default function InvoicePage() {
           workers: [workerName],
         });
       }
-      if (isDay) tDays++;
-      if (isNight) tNights++;
-      tOT += ot;
+
+      if (isDay) {
+        tDays++;
+        let g = dayRateMap.get(effDayRate);
+        if (!g) { g = { rate: effDayRate, qty: 0, isOverride: dayIsOverride, workerNames: [] }; dayRateMap.set(effDayRate, g); }
+        g.qty++;
+        if (dayIsOverride) { pushWorker(g, workerName); g.isOverride = true; }
+      }
+      if (isNight) {
+        tNights++;
+        let g = nightRateMap.get(defaultNight);
+        if (!g) { g = { rate: defaultNight, qty: 0, isOverride: false, workerNames: [] }; nightRateMap.set(defaultNight, g); }
+        g.qty++;
+      }
+      if (ot > 0) {
+        tOT += ot;
+        let g = otRateMap.get(effOtRate);
+        if (!g) { g = { rate: effOtRate, qty: 0, isOverride: otIsOverride, workerNames: [] }; otRateMap.set(effOtRate, g); }
+        g.qty += ot;
+        if (otIsOverride) { pushWorker(g, workerName); g.isOverride = true; }
+      }
     }
 
     setDailySummary(Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date)));
     setTotalDays(tDays);
     setTotalNights(tNights);
     setTotalOvertime(tOT);
+    setBreakdown({
+      dayLines: Array.from(dayRateMap.values()).sort((a, b) => a.rate - b.rate),
+      nightLines: Array.from(nightRateMap.values()).sort((a, b) => a.rate - b.rate),
+      otLines: Array.from(otRateMap.values()).sort((a, b) => a.rate - b.rate),
+    });
     setPreviewing(false);
   }
 
@@ -187,12 +257,25 @@ export default function InvoicePage() {
 
       const { startDate, endDate } = getBillingPeriod(selectedYear, selectedMonth, client);
       const periodStr = `${formatDate(startDate)}～${formatDate(endDate)}`;
-      const dayRate = client.day_rate || 16000;
-      const otRate = client.overtime_rate || 2300;
-      const dayAmount = totalDays * dayRate;
-      const nightAmount = totalNights * (client.night_rate || dayRate);
-      const otAmount = totalOvertime * otRate;
-      const subtotal = dayAmount + nightAmount + otAmount;
+
+      // 個別単価対応：rate breakdown から行アイテムを生成
+      const lineItemsPreview: { name: string; qty: number; unit: string; price: number; amount: number }[] = [];
+      for (const g of breakdown.dayLines) {
+        const name = g.isOverride
+          ? `解体作業代金（${g.workerNames.join('、')}）`
+          : '解体作業代金';
+        lineItemsPreview.push({ name, qty: g.qty, unit: '人日', price: g.rate, amount: g.qty * g.rate });
+      }
+      for (const g of breakdown.otLines) {
+        const name = g.isOverride
+          ? `残業代（${g.workerNames.join('、')}）`
+          : '残業代';
+        lineItemsPreview.push({ name, qty: g.qty, unit: '時間', price: g.rate, amount: g.qty * g.rate });
+      }
+      for (const g of breakdown.nightLines) {
+        lineItemsPreview.push({ name: '夜勤代金', qty: g.qty, unit: '人日', price: g.rate, amount: g.qty * g.rate });
+      }
+      const subtotal = lineItemsPreview.reduce((sum, it) => sum + it.amount, 0);
       const tax = Math.floor(subtotal * 0.1);
       const grandTotal = subtotal + tax;
 
@@ -359,14 +442,7 @@ export default function InvoicePage() {
 
       // Data rows
       let dataRow = 18;
-      const lineItems: { name: string; qty: number; unit: string; price: number; amount: number }[] = [];
-      lineItems.push({ name: '解体作業代金', qty: totalDays, unit: '人日', price: dayRate, amount: dayAmount });
-      if (totalOvertime > 0) {
-        lineItems.push({ name: '残業代', qty: totalOvertime, unit: '時間', price: otRate, amount: otAmount });
-      }
-      if (totalNights > 0) {
-        lineItems.push({ name: '夜勤代金', qty: totalNights, unit: '人日', price: client.night_rate || dayRate, amount: nightAmount });
-      }
+      const lineItems = lineItemsPreview;
 
       for (const item of lineItems) {
         ws.getCell(`A${dataRow}`).value = '';
@@ -674,7 +750,7 @@ export default function InvoicePage() {
               <label className="block text-sm font-bold text-gray-900 mb-1">取引先</label>
               <select
                 value={selectedClientId}
-                onChange={e => { setSelectedClientId(e.target.value); setHasFetched(false); setDailySummary([]); }}
+                onChange={e => { setSelectedClientId(e.target.value); setHasFetched(false); setDailySummary([]); setBreakdown(EMPTY_BREAKDOWN); }}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 <option value="">選択してください</option>
@@ -687,7 +763,7 @@ export default function InvoicePage() {
               <label className="block text-sm font-bold text-gray-900 mb-1">年</label>
               <select
                 value={selectedYear}
-                onChange={e => { setSelectedYear(Number(e.target.value)); setHasFetched(false); setDailySummary([]); }}
+                onChange={e => { setSelectedYear(Number(e.target.value)); setHasFetched(false); setDailySummary([]); setBreakdown(EMPTY_BREAKDOWN); }}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 {[2025, 2026, 2027].map(y => (
@@ -699,7 +775,7 @@ export default function InvoicePage() {
               <label className="block text-sm font-bold text-gray-900 mb-1">月</label>
               <select
                 value={selectedMonth}
-                onChange={e => { setSelectedMonth(Number(e.target.value)); setHasFetched(false); setDailySummary([]); }}
+                onChange={e => { setSelectedMonth(Number(e.target.value)); setHasFetched(false); setDailySummary([]); setBreakdown(EMPTY_BREAKDOWN); }}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 {Array.from({length: 12}, (_, i) => i + 1).map(m => (
@@ -736,31 +812,33 @@ export default function InvoicePage() {
                       return `${formatDate(startDate)} ～ ${formatDate(endDate)}`;
                     })()}
                   </div>
-                  <div className="text-gray-800">解体作業代金:</div>
-                  <div className="font-bold">
-                    {totalDays}人日 × {formatYen(client.day_rate)} = {formatYen(totalDays * client.day_rate)}
-                  </div>
-                  {totalNights > 0 && (
-                    <>
-                      <div className="text-gray-800">夜勤代金:</div>
-                      <div className="font-bold">
-                        {totalNights}人日 × {formatYen(client.night_rate)} = {formatYen(totalNights * client.night_rate)}
-                      </div>
-                    </>
-                  )}
-                  {totalOvertime > 0 && (
-                    <>
-                      <div className="text-gray-800">残業代:</div>
-                      <div className="font-bold">
-                        {totalOvertime}h × {formatYen(client.overtime_rate || 2300)} = {formatYen(totalOvertime * (client.overtime_rate || 2300))}
-                      </div>
-                    </>
-                  )}
+                  {breakdown.dayLines.flatMap((g, i) => [
+                    <div key={`day-l-${i}`} className="text-gray-800">
+                      {g.isOverride ? `解体作業代金（${g.workerNames.join('、')}）` : '解体作業代金'}:
+                    </div>,
+                    <div key={`day-r-${i}`} className="font-bold">
+                      {g.qty}人日 × {formatYen(g.rate)} = {formatYen(g.qty * g.rate)}
+                    </div>,
+                  ])}
+                  {breakdown.nightLines.flatMap((g, i) => [
+                    <div key={`night-l-${i}`} className="text-gray-800">夜勤代金:</div>,
+                    <div key={`night-r-${i}`} className="font-bold">
+                      {g.qty}人日 × {formatYen(g.rate)} = {formatYen(g.qty * g.rate)}
+                    </div>,
+                  ])}
+                  {breakdown.otLines.flatMap((g, i) => [
+                    <div key={`ot-l-${i}`} className="text-gray-800">
+                      {g.isOverride ? `残業代（${g.workerNames.join('、')}）` : '残業代'}:
+                    </div>,
+                    <div key={`ot-r-${i}`} className="font-bold">
+                      {g.qty}h × {formatYen(g.rate)} = {formatYen(g.qty * g.rate)}
+                    </div>,
+                  ])}
                 </div>
                 {(() => {
-                  const dayAmt = totalDays * client.day_rate;
-                  const nightAmt = totalNights * (client.night_rate || client.day_rate);
-                  const otAmt = totalOvertime * (client.overtime_rate || 2300);
+                  const dayAmt = breakdown.dayLines.reduce((s, g) => s + g.qty * g.rate, 0);
+                  const nightAmt = breakdown.nightLines.reduce((s, g) => s + g.qty * g.rate, 0);
+                  const otAmt = breakdown.otLines.reduce((s, g) => s + g.qty * g.rate, 0);
                   const sub = dayAmt + nightAmt + otAmt;
                   const t = Math.floor(sub * 0.1);
                   return (

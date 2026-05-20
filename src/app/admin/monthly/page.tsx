@@ -100,16 +100,28 @@ export default function MonthlyPage() {
     const startDate = `${year}-${String(mon).padStart(2, '0')}-01`;
     const endDate = mon === 12 ? `${year + 1}-01-01` : `${year}-${String(mon + 1).padStart(2, '0')}-01`;
 
-    const { data: attendance } = await supabase
-      .from('attendance')
-      .select('*, employees(name, daily_wage, night_wage), clients(name, day_rate, night_rate, trip_day_rate, trip_night_rate)')
-      .gte('date', startDate)
-      .lt('date', endDate)
-      .eq('is_holiday', false);
+    const [attRes, ovrRes] = await Promise.all([
+      supabase
+        .from('attendance')
+        .select('*, employees(name, daily_wage, night_wage), clients(id, name, day_rate, night_rate, trip_day_rate, trip_night_rate, overtime_rate)')
+        .gte('date', startDate)
+        .lt('date', endDate)
+        .eq('is_holiday', false),
+      supabase
+        .from('client_employee_rates')
+        .select('client_id, employee_id, day_rate, overtime_rate'),
+    ]);
 
+    const attendance = attRes.data;
     if (!attendance) { setLoading(false); return; }
 
-    // 取引先別集計
+    // 個別単価マップ: key = `${client_id}_${employee_id}`
+    const overrideMap = new Map<string, { day_rate: number | null; overtime_rate: number | null }>();
+    for (const o of (ovrRes.data || [])) {
+      overrideMap.set(`${o.client_id}_${o.employee_id}`, { day_rate: o.day_rate, overtime_rate: o.overtime_rate });
+    }
+
+    // 取引先別集計（個別単価を加味して売上計算）
     const clientMap = new Map<string, ClientSummary>();
     attendance.forEach((a: any) => {
       const cName = a.clients?.name || '不明';
@@ -126,12 +138,23 @@ export default function MonthlyPage() {
       else if (a.shift_type === 'trip_day') s.tripDayCount++;
       else if (a.shift_type === 'trip_night') s.tripNightCount++;
       s.overtimeHours += a.overtime_hours || 0;
-    });
 
-    clientMap.forEach(s => {
-      s.totalRevenue = s.dayRate * s.dayCount + s.nightRate * s.nightCount
-        + s.tripDayRate * s.tripDayCount + s.tripNightRate * s.tripNightCount
-        + Math.round(s.dayRate / 8 * 1.25 * s.overtimeHours);
+      // 個別単価を考慮して売上を加算
+      const clientId = a.clients?.id;
+      const ovr = clientId ? overrideMap.get(`${clientId}_${a.employee_id}`) : undefined;
+      const defaultDay = a.clients?.day_rate || 0;
+      const defaultNight = a.clients?.night_rate || 0;
+      const defaultTripDay = a.clients?.trip_day_rate || 0;
+      const defaultTripNight = a.clients?.trip_night_rate || 0;
+      const defaultOt = a.clients?.overtime_rate || Math.round(defaultDay / 8 * 1.25);
+      const effDay = ovr?.day_rate ?? defaultDay;
+      const effOt = ovr?.overtime_rate ?? defaultOt;
+
+      if (a.shift_type === 'day') s.totalRevenue += effDay;
+      else if (a.shift_type === 'night') s.totalRevenue += defaultNight;
+      else if (a.shift_type === 'trip_day') s.totalRevenue += defaultTripDay || effDay;
+      else if (a.shift_type === 'trip_night') s.totalRevenue += defaultTripNight || defaultNight;
+      s.totalRevenue += (a.overtime_hours || 0) * effOt;
     });
 
     // 従業員別集計

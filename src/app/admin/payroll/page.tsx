@@ -178,6 +178,7 @@ export default function PayrollPage() {
   }
 
   const totalGross = items.reduce((sum, i) => sum + i.grossPay, 0);
+  const totalDeductions = items.reduce((sum, i) => sum + i.totalDeductions, 0);
   const totalNet = items.reduce((sum, i) => sum + i.netSalary, 0);
 
   return (
@@ -352,6 +353,30 @@ export default function PayrollPage() {
                 )}
               </div>
             ))}
+
+            {/* 総合計（給料日の引き下ろし額） */}
+            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl shadow-lg p-5 mt-4 sticky bottom-2">
+              <div className="text-center mb-2 text-sm opacity-90">
+                💰 {month} 給料日に引き下ろす金額
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-xs opacity-80">支給総合計</div>
+                  <div className="text-lg md:text-xl font-bold">{totalGross.toLocaleString()}円</div>
+                </div>
+                <div>
+                  <div className="text-xs opacity-80">控除総合計</div>
+                  <div className="text-lg md:text-xl font-bold">-{totalDeductions.toLocaleString()}円</div>
+                </div>
+                <div className="border-l border-white/40">
+                  <div className="text-xs opacity-90">差引支給総合計</div>
+                  <div className="text-2xl md:text-3xl font-extrabold">{totalNet.toLocaleString()}円</div>
+                </div>
+              </div>
+              <div className="text-center text-xs mt-2 opacity-80">
+                {items.length}名分 / 現金手渡し用
+              </div>
+            </div>
           </div>
         )}
       </main>

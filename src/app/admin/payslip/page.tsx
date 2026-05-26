@@ -14,6 +14,7 @@ type PayslipData = {
   overtimeHours: number;
   baseDailyWage: number;
   nightAllowancePerDay: number;
+  nightWage: number;
   overtimeHourly: number;
   basicSalary: number;
   nightPay: number;
@@ -91,6 +92,7 @@ export default function PayslipPage() {
           workDays: 0, dayCount: 0, nightCount: 0, overtimeHours: 0,
           baseDailyWage: emp.base_daily_wage || emp.daily_wage,
           nightAllowancePerDay: emp.night_allowance_per_day ?? 3000,
+          nightWage: emp.night_wage,
           overtimeHourly: emp.overtime_hourly,
           basicSalary: 0, nightPay: 0, overtimePay: 0,
           positionAllowance: emp.position_allowance || 0,
@@ -119,7 +121,7 @@ export default function PayslipPage() {
 
     empMap.forEach(item => {
       item.basicSalary = item.baseDailyWage * item.dayCount;
-      item.nightPay = item.nightAllowancePerDay * item.nightCount;
+      item.nightPay = item.nightWage * item.nightCount;
       item.overtimePay = item.overtimeHourly * item.overtimeHours;
       item.grossPay = item.basicSalary + item.nightPay + item.overtimePay
         + item.positionAllowance + item.tripAllowance + item.specialAllowance;
@@ -162,7 +164,7 @@ export default function PayslipPage() {
 <table>
   <tr class="section-title"><td colspan="2">【支給】</td></tr>
   <tr><th>基本給（${p.baseDailyWage.toLocaleString()}円 × ${p.dayCount}日）</th><td>${p.basicSalary.toLocaleString()}</td></tr>
-  ${p.nightCount > 0 ? `<tr><th>夜勤手当（${p.nightAllowancePerDay.toLocaleString()}円 × ${p.nightCount}日）</th><td>${p.nightPay.toLocaleString()}</td></tr>` : ''}
+  ${p.nightCount > 0 ? `<tr><th>夜勤（${p.nightWage.toLocaleString()}円 × ${p.nightCount}日）</th><td>${p.nightPay.toLocaleString()}</td></tr>` : ''}
   ${p.overtimePay > 0 ? `<tr><th>残業手当（${p.overtimeHours}h）</th><td>${p.overtimePay.toLocaleString()}</td></tr>` : ''}
   ${p.positionAllowance > 0 ? `<tr><th>職務手当</th><td>${p.positionAllowance.toLocaleString()}</td></tr>` : ''}
   ${p.tripAllowance > 0 ? `<tr><th>出張手当</th><td>${p.tripAllowance.toLocaleString()}</td></tr>` : ''}
@@ -268,7 +270,7 @@ export default function PayslipPage() {
                       </div>
                       {selected.nightCount > 0 && (
                         <div className="flex justify-between">
-                          <span>夜勤手当（{selected.nightAllowancePerDay.toLocaleString()}×{selected.nightCount}日）</span>
+                          <span>夜勤（{selected.nightWage.toLocaleString()}×{selected.nightCount}日）</span>
                           <span>{selected.nightPay.toLocaleString()}</span>
                         </div>
                       )}

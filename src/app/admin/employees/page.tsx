@@ -316,19 +316,12 @@ export default function EmployeesPage() {
                       onChange={(e) => setForm({ ...form, base_daily_wage: e.target.value, daily_wage: e.target.value })}
                       className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg font-bold" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">夜勤加算額（円/日）</label>
-                      <input type="number" value={form.night_allowance_per_day}
-                        onChange={(e) => setForm({ ...form, night_allowance_per_day: e.target.value })}
-                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">夜勤日給（円）</label>
-                      <input type="number" value={form.night_wage}
-                        onChange={(e) => setForm({ ...form, night_wage: e.target.value })}
-                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">夜勤日給（円）</label>
+                    <input type="number" value={form.night_wage}
+                      onChange={(e) => setForm({ ...form, night_wage: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg font-bold" />
+                    <p className="text-xs text-gray-500 mt-1">夜勤の日はこの金額で支給されます（基本日給とは別）</p>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>

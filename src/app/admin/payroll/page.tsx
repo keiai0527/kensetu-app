@@ -135,7 +135,7 @@ export default function PayrollPage() {
     // 給与計算
     empMap.forEach(item => {
       item.basicSalary = item.baseDailyWage * item.dayCount;
-      item.nightPay = item.nightAllowancePerDay * item.nightCount;
+      item.nightPay = item.nightWage * item.nightCount;
       item.overtimePay = item.overtimeHourly * item.overtimeHours;
       item.totalAllowance = item.positionAllowance + item.tripAllowance + item.specialAllowance;
       item.grossPay = item.basicSalary + item.nightPay + item.overtimePay + item.totalAllowance;
@@ -245,7 +245,7 @@ export default function PayrollPage() {
                           </div>
                           {item.nightCount > 0 && (
                             <div className="flex justify-between">
-                              <span>夜勤手当（{item.nightAllowancePerDay.toLocaleString()}×{item.nightCount}日）</span>
+                              <span>夜勤（{item.nightWage.toLocaleString()}×{item.nightCount}日）</span>
                               <span className="font-bold">{item.nightPay.toLocaleString()}</span>
                             </div>
                           )}

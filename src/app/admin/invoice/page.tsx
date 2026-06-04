@@ -311,9 +311,10 @@ export default function InvoicePage() {
       // Row 3: spacer
       ws.getRow(3).height = 6;
 
-      // Row 4: 請求日 (right side)
+      // Row 4: 請求日 (right side) — 締め日（請求対象期間の終了日）と一致させる
+      const closingDayNum = parseInt(endDate.split('-')[2], 10);
       ws.mergeCells('E4:F4');
-      ws.getCell('E4').value = `請求日: ${selectedYear}年${selectedMonth}月21日`;
+      ws.getCell('E4').value = `請求日: ${selectedYear}年${selectedMonth}月${closingDayNum}日`;
       ws.getCell('E4').font = smallFont;
       ws.getCell('E4').alignment = { horizontal: 'right' };
 
@@ -597,42 +598,53 @@ export default function InvoicePage() {
       const ExcelJS = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       const ws = workbook.addWorksheet(`出面表_${selectedMonth}月`, {
-        pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
+        // 横はA4幅に必ず収め、縦は複数ページにまたいでOK（fitToHeight=0で自動）
+        pageSetup: {
+          paperSize: 9,
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+          margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+        },
+        properties: { defaultRowHeight: 24 }
       });
 
       const thinBorder = { style: 'thin' as const, color: { argb: 'FF000000' } };
       const medBorder = { style: 'medium' as const, color: { argb: 'FF000000' } };
       const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFF8080' } };
-      const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Yu Gothic' };
-      const normalFont = { size: 10, name: 'Yu Gothic' };
-      const boldFont = { bold: true, size: 10, name: 'Yu Gothic' };
+      // フォントを大きく（10 → 13/14）して印刷時に読めるサイズに
+      const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 13, name: 'Yu Gothic' };
+      const normalFont = { size: 13, name: 'Yu Gothic' };
+      const boldFont = { bold: true, size: 13, name: 'Yu Gothic' };
 
+      // 列幅も拡大して読みやすく（landscape A4はEMU換算で約120col幅取れる）
       ws.columns = [
-        { width: 10 }, // A: date
-        { width: 5 },  // B: day of week
-        { width: 24 }, // C: site
-        { width: 7 },  // D: day count
-        { width: 7 },  // E: night count
-        { width: 7 },  // F: overtime
-        { width: 7 },  // G: early
-        { width: 7 },  // H: laborer
-        { width: 8 },  // I: demolition
-        { width: 7 },  // J: transport
-        { width: 28 }, // K: remarks
+        { width: 12 }, // A: date
+        { width: 6 },  // B: day of week
+        { width: 28 }, // C: site
+        { width: 8 },  // D: day count
+        { width: 8 },  // E: night count
+        { width: 8 },  // F: overtime
+        { width: 8 },  // G: early
+        { width: 8 },  // H: laborer
+        { width: 9 },  // I: demolition
+        { width: 8 },  // J: transport
+        { width: 32 }, // K: remarks
       ];
 
       // Title
       ws.mergeCells('A1:K1');
       ws.getCell('A1').value = '出 面 表';
-      ws.getCell('A1').font = { bold: true, size: 18, name: 'Yu Gothic' };
+      ws.getCell('A1').font = { bold: true, size: 22, name: 'Yu Gothic' };
       ws.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
-      ws.getRow(1).height = 32;
+      ws.getRow(1).height = 40;
 
       // Subtitle
       ws.mergeCells('A2:C2');
       ws.getCell('A2').value = `${selectedYear}年${selectedMonth}月分　${client.name}`;
-      ws.getCell('A2').font = { bold: true, size: 12, name: 'Yu Gothic' };
-      ws.getRow(2).height = 24;
+      ws.getCell('A2').font = { bold: true, size: 14, name: 'Yu Gothic' };
+      ws.getRow(2).height = 28;
 
       // Header row
       const hdrRow = 3;
@@ -651,7 +663,7 @@ export default function InvoicePage() {
           right: i === hdrLabels.length - 1 ? medBorder : thinBorder,
         };
       }
-      ws.getRow(hdrRow).height = 22;
+      ws.getRow(hdrRow).height = 28;
 
       // Data rows
       let row = 4;
@@ -685,6 +697,7 @@ export default function InvoicePage() {
         } else if (day.dayOfWeek === '日') {
           ws.getCell(`B${row}`).font = { ...normalFont, color: { argb: 'FFCC0000' } };
         }
+        ws.getRow(row).height = 24;
         row++;
       }
 
@@ -704,7 +717,7 @@ export default function InvoicePage() {
           right: i === totalLabels.length - 1 ? medBorder : thinBorder,
         };
       }
-      ws.getRow(row).height = 22;
+      ws.getRow(row).height = 28;
 
       // Download
       const buffer = await workbook.xlsx.writeBuffer();

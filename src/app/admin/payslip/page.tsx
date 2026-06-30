@@ -136,24 +136,9 @@ export default function PayslipPage() {
     setLoading(false);
   }
 
-  function printPayslip(p: PayslipData) {
+  function buildPayslipBody(p: PayslipData): string {
     const [y, m] = p.yearMonth.split('-');
-    const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<title>給与明細 ${p.employeeName} ${y}年${m}月</title>
-<style>
-  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; max-width: 600px; margin: 40px auto; font-size: 14px; }
-  h1 { text-align: center; font-size: 20px; border-bottom: 3px double #333; padding-bottom: 10px; }
-  .info { display: flex; justify-content: space-between; margin: 15px 0; }
-  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-  th, td { border: 1px solid #333; padding: 6px 10px; }
-  th { background: #f0f0f0; text-align: left; width: 45%; }
-  td { text-align: right; }
-  .section-title { background: #333; color: #fff; text-align: center; font-weight: bold; }
-  .total-row th, .total-row td { background: #fff8e1; font-weight: bold; font-size: 15px; }
-  .net-row th, .net-row td { background: #e8f5e9; font-weight: bold; font-size: 18px; }
-  @media print { body { margin: 20px; } .no-print { display: none !important; } }
-</style></head><body>
+    return `
 <h1>給 与 明 細 書</h1>
 <div class="info">
   <div><strong>${p.employeeName}</strong>${p.employeeNameVi ? ` (${p.employeeNameVi})` : ''} 様</div>
@@ -191,11 +176,68 @@ export default function PayslipPage() {
 
 <div style="text-align:center;margin-top:30px;font-size:11px;color:#999;">
   株式会社敬愛興業 ｜ Cham勤怠管理システム
-</div>
+</div>`;
+  }
+
+  function printPayslip(p: PayslipData) {
+    const [y, m] = p.yearMonth.split('-');
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>給与明細 ${p.employeeName} ${y}年${m}月</title>
+<style>
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; max-width: 600px; margin: 40px auto; font-size: 14px; }
+  h1 { text-align: center; font-size: 20px; border-bottom: 3px double #333; padding-bottom: 10px; }
+  .info { display: flex; justify-content: space-between; margin: 15px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #333; padding: 6px 10px; }
+  th { background: #f0f0f0; text-align: left; width: 45%; }
+  td { text-align: right; }
+  .section-title { background: #333; color: #fff; text-align: center; font-weight: bold; }
+  .total-row th, .total-row td { background: #fff8e1; font-weight: bold; font-size: 15px; }
+  .net-row th, .net-row td { background: #e8f5e9; font-weight: bold; font-size: 18px; }
+  @media print { body { margin: 20px; } .no-print { display: none !important; } }
+</style></head><body>
+${buildPayslipBody(p)}
 <div class="no-print" style="text-align:center;margin:30px 0;">
   <button onclick="window.print()" style="padding:10px 30px;font-size:16px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:0 10px;">印刷 / PDF保存</button>
   <button onclick="window.close()" style="padding:10px 30px;font-size:16px;background:#666;color:#fff;border:none;border-radius:6px;cursor:pointer;margin:0 10px;">閉じる</button>
 </div>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  }
+
+  function printAllPayslips() {
+    const [y, m] = month.split('-');
+    const bodies = payslips.map((p, i) =>
+      `<div class="payslip${i < payslips.length - 1 ? ' page-break' : ''}">${buildPayslipBody(p)}</div>`
+    ).join('\n');
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>給与明細 全員 ${y}年${m}月</title>
+<style>
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; font-size: 14px; }
+  .payslip { max-width: 600px; margin: 40px auto; }
+  .page-break { page-break-after: always; }
+  h1 { text-align: center; font-size: 20px; border-bottom: 3px double #333; padding-bottom: 10px; }
+  .info { display: flex; justify-content: space-between; margin: 15px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #333; padding: 6px 10px; }
+  th { background: #f0f0f0; text-align: left; width: 45%; }
+  td { text-align: right; }
+  .section-title { background: #333; color: #fff; text-align: center; font-weight: bold; }
+  .total-row th, .total-row td { background: #fff8e1; font-weight: bold; font-size: 15px; }
+  .net-row th, .net-row td { background: #e8f5e9; font-weight: bold; font-size: 18px; }
+  @media print { .no-print { display: none !important; } }
+</style></head><body>
+<div class="no-print" style="text-align:center;padding:20px;background:#f0f0f0;position:sticky;top:0;z-index:10;">
+  <strong>${y}年${parseInt(m)}月分 全${payslips.length}名</strong>
+  <button onclick="window.print()" style="margin-left:20px;padding:10px 30px;font-size:16px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;">全員分を印刷 / PDF保存</button>
+  <button onclick="window.close()" style="margin-left:10px;padding:10px 20px;font-size:16px;background:#666;color:#fff;border:none;border-radius:6px;cursor:pointer;">閉じる</button>
+</div>
+${bodies}
 </body></html>`;
 
     const w = window.open('', '_blank');
@@ -220,6 +262,12 @@ export default function PayslipPage() {
             onChange={(e) => { setMonth(e.target.value); setSelectedEmp(null); fetchPayslips(e.target.value); }}
             className="p-3 border-2 rounded-lg text-lg" />
           <span className="text-sm text-gray-500">{payslips.length}名</span>
+          {payslips.length > 0 && (
+            <button onClick={printAllPayslips}
+              className="ml-auto px-5 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 text-sm">
+              全員一括印刷（{payslips.length}名）
+            </button>
+          )}
         </div>
 
         {loading ? (
